@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -39,12 +40,12 @@ public class GameService {
     private final SecurityUtil securityUtil;
 
     @Transactional
-    public GameStateResponse startGame() {
+    public GameStateResponse createGame() {
         User user = getCurrentUser();
 
         List<Game> existing = gameRepo.findByUserIdAndStatus(user.getId(), GameStatus.IN_PROGRESS);
         if (!existing.isEmpty())
-            return buildGameState(existing.get(0));
+            throw new IllegalStateException("You already have a game in progress");
 
         String targetTitle = wikiContentService.getRandomPageTitle();
         String startTitle = targetTitle;
@@ -81,6 +82,16 @@ public class GameService {
         return buildGameState(game, startPage, List.of(firstStep));
     }
 
+    public GameStateResponse getCurrentGame() {
+        User user = getCurrentUser();
+
+        Game game = gameRepo.findByUserIdAndStatus(user.getId(), GameStatus.IN_PROGRESS).stream()
+                .findFirst()
+                .orElseThrow(() -> new EntityNotFoundException("No game currently in progress"));
+
+        return buildGameState(game);
+    }
+    
     @Transactional
     public GameStateResponse followLink(Long gameId, FollowLinkRequest request) {
         User user = getCurrentUser();
@@ -115,8 +126,9 @@ public class GameService {
             game.setEndedAt(LocalDateTime.now());
         }
 
-        steps.add(step);
-        return buildGameState(game, nextPage, steps);
+        List<GameStep> updatedSteps = new ArrayList<>(steps);
+        updatedSteps.add(step);
+        return buildGameState(game, nextPage, updatedSteps);
     }
 
     @Transactional

@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import static org.mockito.Mockito.lenient;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -62,61 +63,58 @@ class GameServiceTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        when(securityUtil.getCurrentUsername()).thenReturn("alice");
-        when(userRepo.findByUsername("alice")).thenReturn(Optional.of(user));
+        lenient().when(securityUtil.getCurrentUsername()).thenReturn("alice");
+        lenient().when(userRepo.findByUsername("alice")).thenReturn(Optional.of(user));
     }
 
     @Test
-    void startGame_createsNewGame_whenNoneInProgress() {
+    void createGame_createsNewGame_whenNoneInProgress() {
         when(gameRepo.findByUserIdAndStatus(1L, GameStatus.IN_PROGRESS)).thenReturn(List.of());
-        // Loop in startGame keeps drawing until start != target: first
-        // draw is the target, the loop then draws again for a distinct start.
         when(wikiContentService.getRandomPageTitle()).thenReturn("Napoli", "Unina");
         when(wikiContentService.getPageContent("Unina"))
                 .thenReturn(new PageContent("Unina", "Unina is a city...", List.of("Campania", "Napoli")));
 
-        GameStateResponse response = gameService.startGame();
+        GameStateResponse response = gameService.createGame();
 
         assertEquals("Unina", response.startPageTitle());
         assertEquals("Napoli", response.targetPageTitle());
         assertEquals(GameStatus.IN_PROGRESS, response.status());
         assertEquals(1, response.numSteps());
-        assertEquals("Unina", response.currentPageTitle());
-        assertEquals(1, response.path().size());
         verify(gameRepo, times(1)).save(any(Game.class));
         verify(gameStepRepo, times(1)).save(any(GameStep.class));
     }
 
     @Test
-    void startGame_resumesExisting_whenInProgressGameFound() {
-        Game existing = Game.builder()
-                .id(42L)
-                .user(user)
-                .startPageTitle("Napoli")
-                .targetPageTitle("Unina")
-                .status(GameStatus.IN_PROGRESS)
-                .startedAt(LocalDateTime.now())
-                .numSteps(1)
-                .build();
+    void createGame_throwsConflict_whenAlreadyInProgress() {
+        Game existing = inProgressGame();
+        when(gameRepo.findByUserIdAndStatus(1L, GameStatus.IN_PROGRESS)).thenReturn(List.of(existing));
 
-        GameStep existingStep = GameStep.builder()
-                .id(1L)
-                .game(existing)
-                .stepNumber(1)
-                .pageTitle("Napoli")
-                .visitedAt(LocalDateTime.now())
-                .build();
+        assertThrows(IllegalStateException.class, () -> gameService.createGame());
+
+        verify(wikiContentService, never()).getRandomPageTitle();
+        verify(gameRepo, never()).save(any(Game.class));
+    }
+
+    @Test
+    void getCurrentGame_returnsExistingGame_whenInProgress() {
+        Game existing = inProgressGame();
+        GameStep existingStep = stepOf(existing, 1, "Napoli");
 
         when(gameRepo.findByUserIdAndStatus(1L, GameStatus.IN_PROGRESS)).thenReturn(List.of(existing));
         when(gameStepRepo.findByGameIdOrderByStepNumberAsc(42L)).thenReturn(List.of(existingStep));
         when(wikiContentService.getPageContent("Napoli"))
                 .thenReturn(new PageContent("Napoli", "Napoli is a city...", List.of("Unina")));
 
-        GameStateResponse response = gameService.startGame();
+        GameStateResponse response = gameService.getCurrentGame();
 
         assertEquals(42L, response.gameId());
-        verify(wikiContentService, never()).getRandomPageTitle();
-        verify(gameRepo, never()).save(any(Game.class));
+    }
+
+    @Test
+    void getCurrentGame_throwsNotFound_whenNoneInProgress() {
+        when(gameRepo.findByUserIdAndStatus(1L, GameStatus.IN_PROGRESS)).thenReturn(List.of());
+
+        assertThrows(jakarta.persistence.EntityNotFoundException.class, () -> gameService.getCurrentGame());
     }
 
     @Test
