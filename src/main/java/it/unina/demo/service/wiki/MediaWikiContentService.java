@@ -54,6 +54,22 @@ public class MediaWikiContentService implements WikiContentService {
         return new PageContent(resolvedTitle, content, linkTitles);
     }
 
+    @Override
+    public String getRandomPageTitle() {
+        JsonNode response = wikipediaRestClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .queryParam("action", "query")
+                        .queryParam("format", "json")
+                        .queryParam("list", "random")
+                        .queryParam("rnnamespace", "0")
+                        .queryParam("rnlimit", "1")
+                        .build())
+                .retrieve()
+                .body(JsonNode.class);
+
+        return response.path("query").path("random").get(0).get("title").asString();
+    }
+            
     private JsonNode queryPage(String title, String plContinue) {
         return wikipediaRestClient.get()
                 .uri(uriBuilder -> buildQueryUri(uriBuilder, title, plContinue))
