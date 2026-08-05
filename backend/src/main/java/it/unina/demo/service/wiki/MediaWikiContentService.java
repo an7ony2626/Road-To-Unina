@@ -1,57 +1,67 @@
 package it.unina.demo.service.wiki;
 
-import tools.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.util.UriBuilder;
+import tools.jackson.databind.JsonNode;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
- * Light implementation of WikiContentService: uses MediaWiki's
- * prop=extracts (plain text, explaintext=1) combined with prop=links
- * in a single query, so a page's content and its outgoing links come
- * back together. redirects=1 lets Wikipedia resolve aliases (e.g.
- * "USA" -> "United States") on the server side.
+ * Full implementation of WikiContentService: fetches the real rendered
+ * article HTML via MediaWiki's action=parse, and uses jsoup to extract
+ * both the cleaned HTML (for display) and the list of valid outgoing
+ * links (for move validation) directly from the same markup — no
+ * separate prop=links call needed, the HTML is the single source of
+ * truth for "what's a clickable link on this page".
  *
- * Known simplification: links are capped at MAX_LINK_PAGES batches via
- * plcontinue pagination, instead of following continuation forever.
- * This is a deliberate light-implementation tradeoff, not an oversight.
+ * Known simplification: no CSS is attached here (that's a frontend
+ * concern — linking Wikipedia's real stylesheet, or styling our own).
+ * This service only guarantees correct content and correct links.
  */
 @Service
 @RequiredArgsConstructor
 public class MediaWikiContentService implements WikiContentService {
 
-    private static final int MAX_LINK_PAGES = 10; // 10 * 500 = 5000 links max per page
-
     private final RestClient wikipediaRestClient;
 
     @Override
     public PageContent getPageContent(String title) {
-        JsonNode response = queryPage(title, null);
-        JsonNode pageNode = extractPageNode(response, title);
+        JsonNode response = wikipediaRestClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .queryParam("action", "parse")
+                        .queryParam("format", "json")
+                        .queryParam("prop", "text")
+                        .queryParam("redirects", "1")
+                        .queryParam("page", title)
+                        .build())
+                .retrieve()
+                .body(JsonNode.class);
 
-        String resolvedTitle = pageNode.get("title").asString();
-        String content = pageNode.path("extract").asString("");
+        JsonNode parseNode = response.get("parse");
 
-        List<String> linkTitles = new ArrayList<>();
-        collectLinks(pageNode, linkTitles);
+        if (parseNode == null)
+            throw new WikiPageNotFoundException(title);
 
-        JsonNode continueNode = response.get("continue");
-        int pagesFetched = 1;
+        String resolvedTitle = parseNode.get("title").asString();
+        String rawHtml = parseNode.path("text").path("*").asString("");
 
-        while (continueNode != null && pagesFetched < MAX_LINK_PAGES) {
-            String plContinue = continueNode.get("plcontinue").asString();
-            JsonNode nextResponse = queryPage(title, plContinue);
-            collectLinks(extractPageNode(nextResponse, title), linkTitles);
-            continueNode = nextResponse.get("continue");
-            pagesFetched++;
-        }
+        Document document = Jsoup.parse(rawHtml);
+        stripNonContentElements(document);
 
-        return new PageContent(resolvedTitle, content, linkTitles);
+        Set<String> linkTitles = extractMainspaceLinkTitles(document);
+        rewriteImageSources(document);
+
+        return new PageContent(resolvedTitle, document.body().html(), new ArrayList<>(linkTitles));
     }
 
     @Override
@@ -62,6 +72,8 @@ public class MediaWikiContentService implements WikiContentService {
                         .queryParam("format", "json")
                         .queryParam("list", "random")
                         .queryParam("rnnamespace", "0")
+                        .queryParam("rnfilterredir", "nonredirects")
+                        .queryParam("rnminsize", "1000")
                         .queryParam("rnlimit", "1")
                         .build())
                 .retrieve()
@@ -69,49 +81,45 @@ public class MediaWikiContentService implements WikiContentService {
 
         return response.path("query").path("random").get(0).get("title").asString();
     }
-            
-    private JsonNode queryPage(String title, String plContinue) {
-        return wikipediaRestClient.get()
-                .uri(uriBuilder -> buildQueryUri(uriBuilder, title, plContinue))
-                .retrieve()
-                .body(JsonNode.class);
+
+    // Edit-section pencils and reference-list "cite" backlinks are noise
+    // for a reading UI and would otherwise show up as extra clickable
+    // links; categories/templates/files are non-article namespaces and
+    // can never be valid moves anyway.
+    private void stripNonContentElements(Document document) {
+        document.select("span.mw-editsection, sup.reference, .navbox, .metadata, style, script")
+                .remove();
     }
 
-    private java.net.URI buildQueryUri(UriBuilder uriBuilder, String title, String plContinue) {
-        UriBuilder builder = uriBuilder
-                .queryParam("action", "query")
-                .queryParam("format", "json")
-                .queryParam("prop", "extracts|links")
-                .queryParam("explaintext", "1")
-                .queryParam("exlimit", "1")
-                .queryParam("redirects", "1")
-                .queryParam("plnamespace", "0") // only links to main-namespace articles
-                .queryParam("pllimit", "max")
-                .queryParam("titles", title);
+    private Set<String> extractMainspaceLinkTitles(Document document) {
+        Set<String> titles = new LinkedHashSet<>();
+        Elements links = document.select("a[href^=/wiki/]");
 
-        if (plContinue != null)
-            builder = builder.queryParam("plcontinue", plContinue);
+        for (Element link : links) {
+            String href = link.attr("href");
+            String encodedTitle = href.substring("/wiki/".length());
 
-        return builder.build();
+            // Skip non-mainspace links (Category:, File:, Template:,
+            // Help:, Special:, Wikipedia:, Talk:, etc.) and in-page
+            // anchors on the article itself (href="/wiki/Title#Section").
+            if (encodedTitle.contains(":") || encodedTitle.isBlank())
+                continue;
+
+            String decodedTitle = URLDecoder.decode(encodedTitle.split("#")[0], StandardCharsets.UTF_8)
+                    .replace('_', ' ');
+
+            titles.add(decodedTitle);
+        }
+
+        return titles;
     }
 
-    private JsonNode extractPageNode(JsonNode response, String title) {
-        Collection<JsonNode> pages = response.path("query").path("pages").values();
-
-        if (pages.isEmpty())
-            throw new WikiPageNotFoundException(title);
-
-        JsonNode pageNode = pages.iterator().next();
-
-        if (pageNode.has("missing"))
-            throw new WikiPageNotFoundException(title);
-
-        return pageNode;
-    }
-
-    private void collectLinks(JsonNode pageNode, List<String> linkTitles) {
-        for (JsonNode link : pageNode.path("links")) {
-            linkTitles.add(link.get("title").asString());
+    // MediaWiki emits protocol-relative image URLs (//upload.wikimedia.org/...),
+    // which resolve fine in a real browser but not when injected via
+    // Angular's [innerHTML] outside of a browsing context tied to a URL scheme.
+    private void rewriteImageSources(Document document) {
+        for (Element img : document.select("img[src^=//]")) {
+            img.attr("src", "https:" + img.attr("src"));
         }
     }
 }
