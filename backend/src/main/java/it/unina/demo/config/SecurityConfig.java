@@ -26,7 +26,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/games/leaderboard").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/games/completed").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/games/completed/{id}").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

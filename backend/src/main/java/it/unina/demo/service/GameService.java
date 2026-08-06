@@ -1,6 +1,8 @@
 package it.unina.demo.service;
 
 import it.unina.demo.dto.request.FollowLinkRequest;
+import it.unina.demo.dto.response.CompletedGameDetailResponse;
+import it.unina.demo.dto.response.CompletedGameSummaryResponse;
 import it.unina.demo.dto.response.GameStateResponse;
 import it.unina.demo.dto.response.GameStepResponse;
 import it.unina.demo.dto.response.LeaderboardEntryResponse;
@@ -19,6 +21,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.Duration;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -204,6 +207,49 @@ public class GameService {
                 currentPage.content(),
                 currentPage.linkTitles(),
                 path
+        );
+    }
+
+    public List<CompletedGameSummaryResponse> getCompletedGames() {
+        return gameRepo.findByStatusOrderByStartedAtDesc(GameStatus.COMPLETED).stream()
+                .map(this::toSummary)
+                .toList();
+    }
+
+    // Deliberately does NOT reuse getOwnedGame: this is the public
+    // browsing path, no user context involved at all. A non-COMPLETED
+    // game is treated as not found, not as forbidden — an unauthenticated
+    // visitor shouldn't be able to tell an in-progress game even exists.
+    public CompletedGameDetailResponse getCompletedGameDetail(Long gameId) {
+        Game game = gameRepo.findById(gameId)
+                .filter(g -> g.getStatus() == GameStatus.COMPLETED)
+                .orElseThrow(() -> new EntityNotFoundException("Completed game not found: " + gameId));
+
+        List<GameStep> steps = gameStepRepo.findByGameIdOrderByStepNumberAsc(game.getId());
+
+        List<GameStepResponse> path = steps.stream()
+                .map(s -> new GameStepResponse(s.getStepNumber(), s.getPageTitle()))
+                .toList();
+
+        return new CompletedGameDetailResponse(
+                game.getId(),
+                game.getUser().getUsername(),
+                game.getStartPageTitle(),
+                game.getTargetPageTitle(),
+                game.getNumSteps(),
+                Duration.between(game.getStartedAt(), game.getEndedAt()).getSeconds(),
+                path
+        );
+    }
+
+    private CompletedGameSummaryResponse toSummary(Game game) {
+        return new CompletedGameSummaryResponse(
+                game.getId(),
+                game.getUser().getUsername(),
+                game.getStartPageTitle(),
+                game.getTargetPageTitle(),
+                game.getNumSteps(),
+                Duration.between(game.getStartedAt(), game.getEndedAt()).getSeconds()
         );
     }
 }

@@ -2,6 +2,8 @@ package it.unina.demo.controller;
 
 import it.unina.demo.dto.request.FollowLinkRequest;
 import it.unina.demo.dto.request.UpdateGameStatusRequest;
+import it.unina.demo.dto.response.CompletedGameDetailResponse;
+import it.unina.demo.dto.response.CompletedGameSummaryResponse;
 import it.unina.demo.dto.response.GameStateResponse;
 import it.unina.demo.dto.response.LeaderboardEntryResponse;
 import it.unina.demo.entity.GameStatus;
@@ -82,5 +84,22 @@ public class GameController {
 
         gameService.abandonGame(id);
         return gameService.getGameState(id);
+    }
+
+    // Public per la traccia: "tutti gli utenti, anche quelli non
+    // registrati, potranno esplorare una raccolta delle partite
+    // concluse". @SecurityRequirements vuoto sovrascrive quello a
+    // livello di classe, solo per documentare correttamente su Swagger
+    // che qui non serve token.
+    @io.swagger.v3.oas.annotations.security.SecurityRequirements
+    @GetMapping("/completed")
+    public List<CompletedGameSummaryResponse> getCompletedGames() {
+        return gameService.getCompletedGames();
+    }
+
+    @io.swagger.v3.oas.annotations.security.SecurityRequirements
+    @GetMapping("/completed/{id}")
+    public CompletedGameDetailResponse getCompletedGame(@PathVariable Long id) {
+        return gameService.getCompletedGameDetail(id);
     }
 }

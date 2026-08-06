@@ -1,6 +1,8 @@
 package it.unina.demo.service;
 
 import it.unina.demo.dto.request.FollowLinkRequest;
+import it.unina.demo.dto.response.CompletedGameDetailResponse;
+import it.unina.demo.dto.response.CompletedGameSummaryResponse;
 import it.unina.demo.dto.response.GameStateResponse;
 import it.unina.demo.dto.response.LeaderboardEntryResponse;
 import it.unina.demo.entity.Game;
@@ -193,6 +195,63 @@ class GameServiceTest {
 
         assertEquals(1, leaderboard.size());
         assertEquals(new LeaderboardEntryResponse(1L, "alice", 3L, 5), leaderboard.get(0));
+    }
+
+    @Test
+    void getCompletedGames_mapsToSummaries() {
+        Game game = Game.builder()
+                .id(42L)
+                .user(user)
+                .startPageTitle("Napoli")
+                .targetPageTitle("Unina")
+                .status(GameStatus.COMPLETED)
+                .startedAt(LocalDateTime.of(2026, 1, 1, 10, 0))
+                .endedAt(LocalDateTime.of(2026, 1, 1, 10, 5))
+                .numSteps(3)
+                .build();
+
+        when(gameRepo.findByStatusOrderByStartedAtDesc(GameStatus.COMPLETED)).thenReturn(List.of(game));
+
+        List<CompletedGameSummaryResponse> result = gameService.getCompletedGames();
+
+        assertEquals(1, result.size());
+        assertEquals("alice", result.get(0).username());
+        assertEquals(300L, result.get(0).totalTimeSeconds());
+    }
+
+    @Test
+    void getCompletedGameDetail_returnsPath_whenGameIsCompleted() {
+        Game game = Game.builder()
+                .id(42L)
+                .user(user)
+                .startPageTitle("Napoli")
+                .targetPageTitle("Unina")
+                .status(GameStatus.COMPLETED)
+                .startedAt(LocalDateTime.of(2026, 1, 1, 10, 0))
+                .endedAt(LocalDateTime.of(2026, 1, 1, 10, 2))
+                .numSteps(2)
+                .build();
+
+        GameStep step1 = stepOf(game, 1, "Napoli");
+        GameStep step2 = stepOf(game, 2, "Unina");
+
+        when(gameRepo.findById(42L)).thenReturn(Optional.of(game));
+        when(gameStepRepo.findByGameIdOrderByStepNumberAsc(42L)).thenReturn(List.of(step1, step2));
+
+        CompletedGameDetailResponse response = gameService.getCompletedGameDetail(42L);
+
+        assertEquals("alice", response.username());
+        assertEquals(2, response.path().size());
+        assertEquals(120L, response.totalTimeSeconds());
+    }
+
+    @Test
+    void getCompletedGameDetail_throwsNotFound_whenGameIsNotCompleted() {
+        Game game = inProgressGame();
+        when(gameRepo.findById(42L)).thenReturn(Optional.of(game));
+
+        assertThrows(jakarta.persistence.EntityNotFoundException.class,
+                () -> gameService.getCompletedGameDetail(42L));
     }
 
     private Game inProgressGame() {
