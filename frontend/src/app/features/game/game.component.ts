@@ -1,11 +1,12 @@
-import { ChangeDetectionStrategy, Component, ElementRef, OnInit, inject, signal, viewChild } from '@angular/core';
-import { DomSanitizer } from '@angular/platform-browser';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { GameService } from '../../core/services/game.service';
 import { GameState } from '../../core/models/game.model';
+import { WikiArticleComponent } from './wiki-article/wiki-article.component';
 
 @Component({
   selector: 'app-game',
+  imports: [WikiArticleComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: 'game.component.scss',
   template: `
@@ -21,6 +22,7 @@ import { GameState } from '../../core/models/game.model';
           <strong>{{ game()?.targetPageTitle }}</strong>
         </span>
         <div class="topbar-actions">
+          <span class="timer mono">{{ elapsedLabel() }}</span>
           <span class="steps mono">{{ game()?.numSteps ?? 0 }} mosse</span>
           <button type="button" class="link-button" (click)="abandon()">Abbandona</button>
         </div>
@@ -35,7 +37,8 @@ import { GameState } from '../../core/models/game.model';
             <p class="muted">
               Da <strong>{{ game()!.startPageTitle }}</strong> a
               <strong>{{ game()!.targetPageTitle }}</strong> in
-              <strong>{{ game()!.numSteps }}</strong> mosse.
+              <strong>{{ game()!.numSteps }}</strong> mosse e
+              <strong>{{ elapsedLabel() }}</strong>.
             </p>
             <button type="button" class="cta" (click)="goHome()">Torna alla home</button>
           </div>
@@ -44,30 +47,29 @@ import { GameState } from '../../core/models/game.model';
         @if (errorMessage()) {
           <p class="error">{{ errorMessage() }}</p>
         }
-        <article
-          #content
-          class="wiki-content"
-          [class.navigating]="isNavigating()"
-          [innerHTML]="sanitizedContent()"
-          (click)="onContentClick($event)"
-        ></article>
+        <app-wiki-article
+          [html]="game()?.currentPageContent ?? ''"
+          [disabled]="isNavigating()"
+          (titleClicked)="followLink($event)"
+        />
       }
     </div>
   `,
 })
-export class GameComponent implements OnInit {
+export class GameComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly gameService = inject(GameService);
-  private readonly sanitizer = inject(DomSanitizer);
-
-  private readonly contentEl = viewChild<ElementRef<HTMLElement>>('content');
 
   readonly game = signal<GameState | null>(null);
   readonly isLoading = signal(true);
   readonly isNavigating = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly isCompleted = signal(false);
+  readonly elapsedLabel = signal('00:00');
+
+  private timerHandle?: ReturnType<typeof setInterval>;
+  private startedAtMs = 0;
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
@@ -77,30 +79,11 @@ export class GameComponent implements OnInit {
     });
   }
 
-  sanitizedContent() {
-    const html = this.game()?.currentPageContent ?? '';
-    return this.sanitizer.bypassSecurityTrustHtml(html);
+  ngOnDestroy(): void {
+    this.stopTimer();
   }
 
-  // Wikipedia's own markup is what's rendered, so any click could land
-  // on a nested <span> or <b> inside the link — closest() walks up to
-  // the actual anchor rather than assuming the event target is one.
-  onContentClick(event: MouseEvent): void {
-    if (this.isNavigating()) return;
-
-    const anchor = (event.target as HTMLElement).closest('a');
-    if (!anchor || !this.contentEl()?.nativeElement.contains(anchor)) return;
-
-    const href = anchor.getAttribute('href') ?? '';
-    if (!href.startsWith('/wiki/')) return;
-
-    event.preventDefault();
-
-    const title = decodeURIComponent(href.slice('/wiki/'.length).split('#')[0]).replace(/_/g, ' ');
-    this.followLink(title);
-  }
-
-  private followLink(clickedTitle: string): void {
+  followLink(clickedTitle: string): void {
     const game = this.game();
     if (!game) return;
 
@@ -133,5 +116,36 @@ export class GameComponent implements OnInit {
   private applyGameState(game: GameState): void {
     this.game.set(game);
     this.isCompleted.set(game.status === 'COMPLETED');
+    this.syncTimer(game);
+  }
+
+  private syncTimer(game: GameState): void {
+    this.startedAtMs = new Date(game.startedAt).getTime();
+    this.updateElapsedLabel();
+
+    if (game.status !== 'IN_PROGRESS') {
+      this.stopTimer();
+      return;
+    }
+
+    if (!this.timerHandle) {
+      this.timerHandle = setInterval(() => this.updateElapsedLabel(), 1000);
+    }
+  }
+
+  private updateElapsedLabel(): void {
+    const elapsedSeconds = Math.max(0, Math.floor((Date.now() - this.startedAtMs) / 1000));
+    const minutes = Math.floor(elapsedSeconds / 60)
+      .toString()
+      .padStart(2, '0');
+    const seconds = (elapsedSeconds % 60).toString().padStart(2, '0');
+    this.elapsedLabel.set(`${minutes}:${seconds}`);
+  }
+
+  private stopTimer(): void {
+    if (this.timerHandle) {
+      clearInterval(this.timerHandle);
+      this.timerHandle = undefined;
+    }
   }
 }

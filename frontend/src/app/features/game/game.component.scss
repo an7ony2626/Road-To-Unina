@@ -27,6 +27,7 @@
   gap: 16px;
 }
 
+.timer,
 .steps {
   color: var(--ink-soft);
   font-size: 13px;
@@ -62,131 +63,27 @@
   margin: 0;
 }
 
-.wiki-content {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 32px 24px 80px;
-  font-family: var(--font-body);
-  line-height: 1.7;
-  color: var(--ink);
-  overflow: hidden; // contain floated infobox/thumbs
+.progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--route-red-soft);
+  z-index: 10;
+  overflow: hidden;
+}
 
-  :global(a) {
-    color: var(--wiki-blue);
-    text-decoration: none;
+.progress-fill {
+  height: 100%;
+  width: 40%;
+  background: var(--wiki-blue);
+  animation: progress-slide 1s ease-in-out infinite;
+}
 
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-
-  :global(h1),
-  :global(h2),
-  :global(h3) {
-    font-family: var(--font-display);
-    margin: 28px 0 12px;
-    clear: both;
-  }
-
-  :global(p) {
-    margin: 0 0 14px;
-  }
-
-  // Infobox: the sidebar card (person/place/event summary table) —
-  // floats right and sits beside the intro paragraphs, like on Wikipedia.
-  :global(table.infobox) {
-    float: right;
-    clear: right;
-    margin: 0 0 16px 20px;
-    width: 280px;
-    max-width: 100%;
-    font-size: 13px;
-    border: 1px solid var(--line);
-    border-collapse: collapse;
-    background: var(--paper-raised);
-
-    :global(caption) {
-      font-family: var(--font-display);
-      font-weight: 600;
-      padding: 8px;
-    }
-
-    :global(th),
-    :global(td) {
-      padding: 4px 8px;
-      border-top: 1px solid var(--line);
-      text-align: left;
-      vertical-align: top;
-    }
-
-    :global(img) {
-      max-width: 100%;
-      height: auto;
-    }
-  }
-
-  // Single inline image with caption ("thumb") — floats right and
-  // wraps text, same as MediaWiki's default.
-  :global(.thumb) {
-    float: right;
-    clear: right;
-    margin: 0 0 16px 20px;
-    max-width: 280px;
-    background: var(--paper-raised);
-    border: 1px solid var(--line);
-    padding: 6px;
-    font-size: 13px;
-    text-align: center;
-
-    :global(img) {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-  }
-
-  // Multi-image gallery blocks — grid instead of the stacked-column
-  // mess that comes from unstyled <ul class="gallery"><li>.
-  :global(ul.gallery) {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 12px;
-    list-style: none;
-    margin: 16px 0;
-    padding: 0;
-    clear: both;
-
-    :global(li) {
-      font-size: 12px;
-      text-align: center;
-    }
-
-    :global(img) {
-      width: 100%;
-      height: auto;
-      display: block;
-    }
-  }
-
-  :global(img) {
-    max-width: 100%;
-    height: auto;
-  }
-
-  :global(table) {
-    max-width: 100%;
-    overflow-x: auto;
-    display: block;
-    font-size: 14px;
-  }
-
-  // Clearfix so floated infobox/thumbs don't spill past the article
-  // into the footer/next section.
-  &::after {
-    content: '';
-    display: table;
-    clear: both;
-  }
+@keyframes progress-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
 }
 
 .completed-overlay {
@@ -221,33 +118,4 @@
   &:hover {
     background: var(--wiki-blue-dark);
   }
-}
-
-.progress-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: var(--route-red-soft);
-  z-index: 10;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  width: 40%;
-  background: var(--wiki-blue);
-  animation: progress-slide 1s ease-in-out infinite;
-}
-
-@keyframes progress-slide {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(350%); }
-}
-
-.wiki-content.navigating {
-  opacity: 0.45;
-  pointer-events: none;
-  transition: opacity 0.15s ease;
 }
