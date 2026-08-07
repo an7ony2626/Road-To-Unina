@@ -8,6 +8,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/home/home.component').then((m) => m.HomeComponent),
   },
   {
+    path: 'game/:id',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/game/game.component').then((m) => m.GameComponent),
+  },
+  {
     path: 'login',
     loadComponent: () => import('./features/auth/login/login.component').then((m) => m.LoginComponent),
   },
