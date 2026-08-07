@@ -1,1 +1,76 @@
-/* You can add global styles to this file, and also import other style files */
+// ---------------------------------------------------------------------------
+// WikiRace — global design tokens
+// Subject: racing across Wikipedia links. Palette pairs an aged-encyclopedia
+// paper tone with the actual Wikipedia link-blue as the primary accent, and
+// a route-red for "in progress / visited" state. Serif for editorial voice,
+// sans for UI, mono for anything timer/score-like.
+// ---------------------------------------------------------------------------
+
+:root {
+  // Color
+  --paper: #f7f4ec;
+  --paper-raised: #fffdf8;
+  --ink: #1b1a17;
+  --ink-soft: #57534a;
+  --line: #ddd6c4;
+  --wiki-blue: #3366cc;
+  --wiki-blue-dark: #1f4a9e;
+  --route-red: #b3452f;
+  --route-red-soft: #f1ddd5;
+
+  // Type
+  --font-display: 'Source Serif 4', Georgia, serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SFMono-Regular', monospace;
+
+  // Layout
+  --radius: 3px;
+  --shadow-card: 0 1px 2px rgba(27, 26, 23, 0.06), 0 8px 24px rgba(27, 26, 23, 0.06);
+  --max-width: 1080px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+a {
+  color: var(--wiki-blue);
+}
+
+button {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--wiki-blue);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
