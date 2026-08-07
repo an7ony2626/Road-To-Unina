@@ -1,15 +1,17 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { catchError, of, timeout } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { GameService } from '../../core/services/game.service';
 import { CompletedGameSummary, GameState, LeaderboardEntry } from '../../core/models/game.model';
+
+const REQUEST_TIMEOUT_MS = 10_000;
 
 @Component({
   selector: 'app-home',
   imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styleUrl: './home.component.scss',
+  styleUrl: 'home.component.scss',
   template: `
     <div class="page">
       <header class="topbar">
@@ -28,8 +30,11 @@ import { CompletedGameSummary, GameState, LeaderboardEntry } from '../../core/mo
             <circle cx="304" cy="20" r="7" fill="var(--route-red)" />
           </svg>
 
-          @if (isLoading()) {
+          @if (isLoadingCurrent()) {
             <p class="muted">Verifica partita in corso…</p>
+          } @else if (currentLoadFailed()) {
+            <p class="error">Impossibile verificare la partita in corso.</p>
+            <button type="button" class="cta" (click)="loadCurrentGame()">Riprova</button>
           } @else if (currentGame()) {
             <h1>Sfida in corso</h1>
             <p class="route-labels">
@@ -52,7 +57,11 @@ import { CompletedGameSummary, GameState, LeaderboardEntry } from '../../core/mo
           <div class="panel-header">
             <h2>Classifica</h2>
           </div>
-          @if (leaderboard().length === 0) {
+          @if (isLoadingLeaderboard()) {
+            <p class="muted">Caricamento…</p>
+          } @else if (leaderboardLoadFailed()) {
+            <p class="error">Impossibile caricare la classifica.</p>
+          } @else if (leaderboard().length === 0) {
             <p class="muted">Nessuna partita completata ancora.</p>
           } @else {
             <ol class="leaderboard">
@@ -72,7 +81,11 @@ import { CompletedGameSummary, GameState, LeaderboardEntry } from '../../core/mo
             <h2>Partite concluse</h2>
             <a routerLink="/completed">Vedi tutte</a>
           </div>
-          @if (recentCompleted().length === 0) {
+          @if (isLoadingCompleted()) {
+            <p class="muted">Caricamento…</p>
+          } @else if (completedLoadFailed()) {
+            <p class="error">Impossibile caricare le partite concluse.</p>
+          } @else if (recentCompleted().length === 0) {
             <p class="muted">Nessuna partita conclusa ancora.</p>
           } @else {
             <ul class="completed-list">
@@ -95,7 +108,14 @@ export class HomeComponent implements OnInit {
   private readonly gameService = inject(GameService);
   private readonly router = inject(Router);
 
-  readonly isLoading = signal(true);
+  readonly isLoadingCurrent = signal(true);
+  readonly isLoadingLeaderboard = signal(true);
+  readonly isLoadingCompleted = signal(true);
+
+  readonly currentLoadFailed = signal(false);
+  readonly leaderboardLoadFailed = signal(false);
+  readonly completedLoadFailed = signal(false);
+
   readonly isStarting = signal(false);
   readonly currentGame = signal<GameState | null>(null);
   readonly leaderboard = signal<LeaderboardEntry[]>([]);
@@ -107,21 +127,76 @@ export class HomeComponent implements OnInit {
   readonly progressX = signal(16);
 
   ngOnInit(): void {
-    forkJoin({
-      current: this.gameService.getCurrentGame(),
-      leaderboard: this.gameService.getLeaderboard(),
-      completed: this.gameService.getCompletedGames(),
-    }).subscribe(({ current, leaderboard, completed }) => {
-      this.currentGame.set(current);
-      this.leaderboard.set(leaderboard.slice(0, 5));
-      this.recentCompleted.set(completed.slice(0, 5));
-      this.isLoading.set(false);
+    // Each section loads independently: a slow or failing Wikipedia
+    // lookup for the current game must never block the leaderboard or
+    // completed-games panels from showing, and vice versa.
+    this.loadCurrentGame();
+    this.loadLeaderboard();
+    this.loadCompleted();
+  }
 
-      if (current) {
-        const step = Math.min(current.numSteps, 10);
-        this.progressX.set(16 + step * 26);
-      }
-    });
+  loadCurrentGame(): void {
+    this.isLoadingCurrent.set(true);
+    this.currentLoadFailed.set(false);
+
+    this.gameService
+      .getCurrentGame()
+      .pipe(
+        timeout(REQUEST_TIMEOUT_MS),
+        catchError(() => of('error' as const)),
+      )
+      .subscribe((result) => {
+        this.isLoadingCurrent.set(false);
+
+        if (result === 'error') {
+          this.currentLoadFailed.set(true);
+          return;
+        }
+
+        this.currentGame.set(result);
+        if (result) {
+          const step = Math.min(result.numSteps, 10);
+          this.progressX.set(16 + step * 26);
+        }
+      });
+  }
+
+  private loadLeaderboard(): void {
+    this.gameService
+      .getLeaderboard()
+      .pipe(
+        timeout(REQUEST_TIMEOUT_MS),
+        catchError(() => of('error' as const)),
+      )
+      .subscribe((result) => {
+        this.isLoadingLeaderboard.set(false);
+
+        if (result === 'error') {
+          this.leaderboardLoadFailed.set(true);
+          return;
+        }
+
+        this.leaderboard.set(result.slice(0, 5));
+      });
+  }
+
+  private loadCompleted(): void {
+    this.gameService
+      .getCompletedGames()
+      .pipe(
+        timeout(REQUEST_TIMEOUT_MS),
+        catchError(() => of('error' as const)),
+      )
+      .subscribe((result) => {
+        this.isLoadingCompleted.set(false);
+
+        if (result === 'error') {
+          this.completedLoadFailed.set(true);
+          return;
+        }
+
+        this.recentCompleted.set(result.slice(0, 5));
+      });
   }
 
   startGame(): void {
