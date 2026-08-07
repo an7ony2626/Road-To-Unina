@@ -1,0 +1,14 @@
+:host {
+  display: block;
+}
+
+.wiki-article {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+  background: #fff;
+  color: #202122;
+  // Fallback only, shown for an instant before the real stylesheet
+  // loads — mediawiki.skinning sets the real font-family once it does.
+  font-family: sans-serif;
+}
