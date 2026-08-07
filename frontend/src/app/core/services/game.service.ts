@@ -20,6 +20,18 @@ export class GameService {
     );
   }
 
+  getGame(id: number): Observable<GameState> {
+    return this.http.get<GameState>(`/api/games/${id}`);
+  }
+
+  followLink(id: number, clickedTitle: string): Observable<GameState> {
+    return this.http.post<GameState>(`/api/games/${id}/moves`, { clickedTitle });
+  }
+
+  abandonGame(id: number): Observable<GameState> {
+    return this.http.patch<GameState>(`/api/games/${id}`, { status: 'ABANDONED' });
+  }
+
   getLeaderboard(): Observable<LeaderboardEntry[]> {
     return this.http.get<LeaderboardEntry[]>('/api/games/leaderboard');
   }
