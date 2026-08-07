@@ -1,0 +1,133 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper-raised);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.route-labels {
+  font-family: var(--font-display);
+  font-size: 16px;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.steps {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--route-red);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.muted {
+  color: var(--ink-soft);
+}
+
+.centered {
+  text-align: center;
+  padding: 64px 0;
+}
+
+.error {
+  background: var(--route-red-soft);
+  color: var(--route-red);
+  font-size: 14px;
+  padding: 10px 28px;
+  margin: 0;
+}
+
+.wiki-content {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 24px 80px;
+  font-family: var(--font-body);
+  line-height: 1.7;
+  color: var(--ink);
+
+  :global(a) {
+    color: var(--wiki-blue);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  :global(h1),
+  :global(h2),
+  :global(h3) {
+    font-family: var(--font-display);
+    margin: 28px 0 12px;
+  }
+
+  :global(img) {
+    max-width: 100%;
+  }
+
+  :global(table) {
+    max-width: 100%;
+    overflow-x: auto;
+    display: block;
+    font-size: 14px;
+  }
+}
+
+.completed-overlay {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.completed-card {
+  text-align: center;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 40px 36px;
+  max-width: 420px;
+}
+
+.cta {
+  margin-top: 20px;
+  padding: 12px 28px;
+  background: var(--wiki-blue);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--wiki-blue-dark);
+  }
+}
