@@ -40,7 +40,35 @@ import { AuthService } from '../../../core/services/auth.service';
 
           <label class="field">
             <span>Password</span>
-            <input type="password" formControlName="rawPassword" autocomplete="new-password" />
+            <div class="password-wrapper">
+              <input
+                [type]="isPasswordVisible() ? 'text' : 'password'"
+                formControlName="rawPassword"
+                autocomplete="new-password"
+              />
+              <button
+                type="button"
+                class="eye-toggle"
+                (click)="isPasswordVisible.set(!isPasswordVisible())"
+                [attr.aria-label]="isPasswordVisible() ? 'Nascondi password' : 'Mostra password'"
+              >
+                @if (isPasswordVisible()) {
+                  <svg viewBox="0 0 24 24" width="18" height="18">
+                    <path
+                      fill="currentColor"
+                      d="M12 6c-5 0-9.27 3.11-11 7.5 1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 9.11 17 6 12 6zm0 12.5a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"
+                    />
+                  </svg>
+                } @else {
+                  <svg viewBox="0 0 24 24" width="18" height="18">
+                    <path
+                      fill="currentColor"
+                      d="M2 4.27 3.28 3l18 18-1.27 1.27-3.16-3.16A11.6 11.6 0 0 1 12 21c-5 0-9.27-3.11-11-7.5a12.1 12.1 0 0 1 4.17-5.4L2 4.27ZM12 8.5a5 5 0 0 1 5 5c0 .6-.11 1.16-.32 1.68l-1.6-1.6a3 3 0 0 0-3.76-3.76l-1.6-1.6c.72-.44 1.55-.72 2.28-.72Zm-9 5c1.13-2.87 3.63-5.14 6.68-5.86l1.65 1.65a3 3 0 0 0 3.88 3.88l2.44 2.44A9.6 9.6 0 0 1 12 19c-4.14 0-7.7-2.5-9-6.5Z"
+                    />
+                  </svg>
+                }
+              </button>
+            </div>
             @if (form.controls.rawPassword.touched && form.controls.rawPassword.invalid) {
               <small class="hint">Almeno 8 caratteri.</small>
             }
@@ -50,7 +78,7 @@ import { AuthService } from '../../../core/services/auth.service';
             <p class="error">{{ errorMessage() }}</p>
           }
 
-          <button type="submit" [disabled]="form.invalid || isSubmitting()">
+          <button type="submit" class="submit" [disabled]="form.invalid || isSubmitting()">
             {{ isSubmitting() ? 'Creazione in corso…' : 'Registrati' }}
           </button>
         </form>
@@ -67,9 +95,6 @@ export class RegisterComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  // Validators mirror RegisterRequest exactly (username 3-50, email,
-  // password min 8) so invalid submissions are caught client-side
-  // before hitting the API.
   readonly form = this.fb.nonNullable.group({
     username: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(50)]],
     email: ['', [Validators.required, Validators.email]],
@@ -78,6 +103,7 @@ export class RegisterComponent {
 
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  readonly isPasswordVisible = signal(false);
 
   submit(): void {
     if (this.form.invalid || this.isSubmitting()) return;

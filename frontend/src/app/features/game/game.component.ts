@@ -7,9 +7,13 @@ import { GameState } from '../../core/models/game.model';
 @Component({
   selector: 'app-game',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styleUrl: './game.component.scss',
+  styleUrl: 'game.component.scss',
   template: `
     <div class="page">
+      @if (isNavigating()) {
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+      }
+
       <header class="topbar">
         <span class="route-labels">
           <strong>{{ game()?.startPageTitle }}</strong>
@@ -43,6 +47,7 @@ import { GameState } from '../../core/models/game.model';
         <article
           #content
           class="wiki-content"
+          [class.navigating]="isNavigating()"
           [innerHTML]="sanitizedContent()"
           (click)="onContentClick($event)"
         ></article>
@@ -60,6 +65,7 @@ export class GameComponent implements OnInit {
 
   readonly game = signal<GameState | null>(null);
   readonly isLoading = signal(true);
+  readonly isNavigating = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly isCompleted = signal(false);
 
@@ -80,6 +86,8 @@ export class GameComponent implements OnInit {
   // on a nested <span> or <b> inside the link — closest() walks up to
   // the actual anchor rather than assuming the event target is one.
   onContentClick(event: MouseEvent): void {
+    if (this.isNavigating()) return;
+
     const anchor = (event.target as HTMLElement).closest('a');
     if (!anchor || !this.contentEl()?.nativeElement.contains(anchor)) return;
 
@@ -97,10 +105,17 @@ export class GameComponent implements OnInit {
     if (!game) return;
 
     this.errorMessage.set(null);
+    this.isNavigating.set(true);
 
     this.gameService.followLink(game.gameId, clickedTitle).subscribe({
-      next: (updated) => this.applyGameState(updated),
-      error: () => this.errorMessage.set(`'${clickedTitle}' non è un link valido su questa pagina.`),
+      next: (updated) => {
+        this.applyGameState(updated);
+        this.isNavigating.set(false);
+      },
+      error: () => {
+        this.isNavigating.set(false);
+        this.errorMessage.set(`'${clickedTitle}' non è un link valido su questa pagina.`);
+      },
     });
   }
 

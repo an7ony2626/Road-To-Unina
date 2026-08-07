@@ -9,7 +9,7 @@ import { CompletedGameSummary, GameState, LeaderboardEntry } from '../../core/mo
   selector: 'app-home',
   imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styleUrl: 'home.component.scss',
+  styleUrl: './home.component.scss',
   template: `
     <div class="page">
       <header class="topbar">

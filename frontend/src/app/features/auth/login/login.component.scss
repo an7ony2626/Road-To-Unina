@@ -44,6 +44,7 @@ h1 {
   color: var(--ink-soft);
 
   input {
+    width: 100%;
     font-family: var(--font-body);
     font-size: 15px;
     color: var(--ink);
@@ -69,7 +70,10 @@ h1 {
   margin: -4px 0 16px;
 }
 
-button {
+// Only the submit button gets the full-width blue treatment — scoped
+// to its own class rather than the bare `button` tag, so it can never
+// leak onto other buttons (like the password eye-toggle) again.
+.submit {
   width: 100%;
   padding: 11px 0;
   background: var(--wiki-blue);
@@ -103,5 +107,38 @@ button {
     &:hover {
       text-decoration: underline;
     }
+  }
+}
+
+.password-wrapper {
+  position: relative;
+  display: flex;
+
+  input {
+    flex: 1;
+    padding-right: 40px;
+  }
+}
+
+.eye-toggle {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    background: var(--line);
+    color: var(--ink);
   }
 }

@@ -7,11 +7,10 @@ import org.springframework.web.client.RestClient;
 @Configuration
 public class WikipediaClientConfig {
 
-    private static final String WIKIPEDIA_API_BASE_URL = "https://en.wikipedia.org/w/api.php";
+    private static final String WIKIPEDIA_API_BASE_URL = "https://it.wikipedia.org/w/api.php";
 
     // Wikimedia's API etiquette requires a descriptive User-Agent with
     // contact info; requests without one get throttled or blocked.
-    // TODO: replace with your real contact email before demoing.
     private static final String USER_AGENT =
             "WikiRaceUninaExam/1.0 (student project; contact: your-email@example.com)";
 
