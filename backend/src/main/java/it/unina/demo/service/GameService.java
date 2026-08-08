@@ -206,24 +206,22 @@ public class GameService {
                 currentPage.title(),
                 currentPage.content(),
                 currentPage.linkTitles(),
-                path
+                path,
+                game.getStartedAt()
         );
     }
 
     public List<CompletedGameSummaryResponse> getCompletedGames() {
-        return gameRepo.findByStatusOrderByStartedAtDesc(GameStatus.COMPLETED).stream()
+        return gameRepo.findByStatusWithUserOrderByStartedAtDesc(GameStatus.COMPLETED).stream()
                 .map(this::toSummary)
                 .toList();
     }
 
-    // Deliberately does NOT reuse getOwnedGame: this is the public
-    // browsing path, no user context involved at all. A non-COMPLETED
-    // game is treated as not found, not as forbidden — an unauthenticated
-    // visitor shouldn't be able to tell an in-progress game even exists.
+
     public CompletedGameDetailResponse getCompletedGameDetail(Long gameId) {
-        Game game = gameRepo.findById(gameId)
-                .filter(g -> g.getStatus() == GameStatus.COMPLETED)
-                .orElseThrow(() -> new EntityNotFoundException("Completed game not found: " + gameId));
+        Game game = gameRepo.findByIdWithUser(gameId)
+            .filter(g -> g.getStatus() == GameStatus.COMPLETED)
+            .orElseThrow(() -> new EntityNotFoundException("Completed game not found: " + gameId));
 
         List<GameStep> steps = gameStepRepo.findByGameIdOrderByStepNumberAsc(game.getId());
 

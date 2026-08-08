@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface GameRepository extends JpaRepository<Game, Long> {
 
@@ -14,10 +15,22 @@ public interface GameRepository extends JpaRepository<Game, Long> {
     // dispositivo diverso" requires finding their in-progress game.
     List<Game> findByUserIdAndStatus(Long userId, GameStatus status);
 
-    // Public browsing of finished games (available to unauthenticated
-    // users too, per the spec) does not need any user filter.
-    List<Game> findByStatusOrderByStartedAtDesc(GameStatus status);
+    // GameRepository.java — sostituisce l'uso di findByStatusOrderByStartedAtDesc
+    @Query("""
+            SELECT g FROM Game g
+            JOIN FETCH g.user
+            WHERE g.status = :status
+            ORDER BY g.startedAt DESC
+            """)
+    List<Game> findByStatusWithUserOrderByStartedAtDesc(@Param("status") GameStatus status);
 
+    // stesso problema latente in getCompletedGameDetail -> serve anche questa
+    @Query("""
+            SELECT g FROM Game g
+            JOIN FETCH g.user
+            WHERE g.id = :id
+            """)
+    Optional<Game> findByIdWithUser(@Param("id") Long id);
     // Starting point for the leaderboard: for each user, how many games
     // they completed and their best (lowest) step count. This is
     // intentionally minimal — refine sorting/tie-breaking rules once the

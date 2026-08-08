@@ -8,6 +8,7 @@ export interface GameStep {
 }
 
 export interface GameState {
+  startedAt: string | number | Date;
   gameId: number;
   startPageTitle: string;
   targetPageTitle: string;

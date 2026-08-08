@@ -2,6 +2,7 @@ package it.unina.demo.dto.response;
 
 import it.unina.demo.entity.GameStatus;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public record GameStateResponse(
@@ -13,6 +14,7 @@ public record GameStateResponse(
         String currentPageTitle,
         String currentPageContent,
         List<String> availableLinks,
-        List<GameStepResponse> path
+        List<GameStepResponse> path,
+        LocalDateTime startedAt
 ) {
 }
