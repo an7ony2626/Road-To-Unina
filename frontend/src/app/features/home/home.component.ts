@@ -7,16 +7,18 @@ import { GameService } from '../../core/services/game.service';
 import { CompletedGameSummary, GameState, LeaderboardEntry } from '../../core/models/game.model';
 import { WikiSearchResult } from '../../core/models/wiki-search.model';
 import { PageSearchComponent } from '../../shared/page-search/page-search.component';
+import { AnimatedBackgroundComponent } from '../../shared/animated-background/animated-background.component';
 
 const REQUEST_TIMEOUT_MS = 10_000;
 
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, PageSearchComponent],
+  imports: [RouterLink, PageSearchComponent, AnimatedBackgroundComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: 'home.component.scss',
   template: `
     <div class="page">
+      <app-animated-background />
       <header class="topbar">
         <span class="brand">WikiRace</span>
         <div class="topbar-actions">
