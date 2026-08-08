@@ -178,3 +178,23 @@ h1 {
   font-size: 14px;
   margin: 4px 0 16px;
 }
+
+.page-picker {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin: 20px 0;
+  text-align: left;
+
+  app-page-search {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.picker-arrow {
+  flex-shrink: 0;
+  margin-top: 34px; // allinea alla riga dell'input, sotto la label
+  color: var(--ink-soft);
+  font-size: 18px;
+}

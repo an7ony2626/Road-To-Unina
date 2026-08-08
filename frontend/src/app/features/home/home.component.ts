@@ -1,15 +1,18 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, of, timeout } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { GameService } from '../../core/services/game.service';
 import { CompletedGameSummary, GameState, LeaderboardEntry } from '../../core/models/game.model';
+import { WikiSearchResult } from '../../core/models/wiki-search.model';
+import { PageSearchComponent } from '../../shared/page-search/page-search.component';
 
 const REQUEST_TIMEOUT_MS = 10_000;
 
 @Component({
   selector: 'app-home',
-  imports: [RouterLink],
+  imports: [RouterLink, PageSearchComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: 'home.component.scss',
   template: `
@@ -46,7 +49,18 @@ const REQUEST_TIMEOUT_MS = 10_000;
             <button type="button" class="cta" (click)="resumeGame()">Riprendi la sfida</button>
           } @else {
             <h1>Pronto per una sfida?</h1>
-            <p class="muted">Trova il percorso più breve tra due pagine di Wikipedia.</p>
+            <p class="muted">Lascia scegliere il caso, oppure imposta tu le pagine di partenza e arrivo.</p>
+
+            <div class="page-picker">
+              <app-page-search label="Pagina di partenza" (pageSelected)="startPageChoice.set($event)" />
+              <span class="picker-arrow" aria-hidden="true">→</span>
+              <app-page-search label="Pagina di arrivo" (pageSelected)="targetPageChoice.set($event)" />
+            </div>
+
+            @if (startErrorMessage()) {
+              <p class="error">{{ startErrorMessage() }}</p>
+            }
+
             <button type="button" class="cta" [disabled]="isStarting()" (click)="startGame()">
               {{ isStarting() ? 'Creazione…' : 'Inizia una nuova sfida' }}
             </button>
@@ -117,19 +131,17 @@ export class HomeComponent implements OnInit {
   readonly completedLoadFailed = signal(false);
 
   readonly isStarting = signal(false);
+  readonly startErrorMessage = signal<string | null>(null);
   readonly currentGame = signal<GameState | null>(null);
   readonly leaderboard = signal<LeaderboardEntry[]>([]);
   readonly recentCompleted = signal<CompletedGameSummary[]>([]);
 
-  // Blue node rests at the start of the track with no game, and creeps
-  // forward with real progress once one exists — position encodes state,
-  // it's not decorative motion.
+  readonly startPageChoice = signal<WikiSearchResult | null>(null);
+  readonly targetPageChoice = signal<WikiSearchResult | null>(null);
+
   readonly progressX = signal(16);
 
   ngOnInit(): void {
-    // Each section loads independently: a slow or failing Wikipedia
-    // lookup for the current game must never block the leaderboard or
-    // completed-games panels from showing, and vice versa.
     this.loadCurrentGame();
     this.loadLeaderboard();
     this.loadCompleted();
@@ -202,9 +214,16 @@ export class HomeComponent implements OnInit {
   startGame(): void {
     if (this.isStarting()) return;
     this.isStarting.set(true);
+    this.startErrorMessage.set(null);
 
-    this.gameService.createGame().subscribe((game) => {
-      this.router.navigate(['/game', game.gameId]);
+    this.gameService.createGame(this.startPageChoice()?.title, this.targetPageChoice()?.title).subscribe({
+      next: (game) => this.router.navigate(['/game', game.gameId]),
+      error: (err: HttpErrorResponse) => {
+        this.isStarting.set(false);
+        this.startErrorMessage.set(
+          typeof err.error === 'string' ? err.error : 'Impossibile creare la partita, riprova.',
+        );
+      },
     });
   }
 
