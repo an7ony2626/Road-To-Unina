@@ -1,0 +1,117 @@
+.page-search {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+}
+
+.field-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.search-input {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 14px;
+  background: var(--paper-raised);
+  color: var(--ink);
+
+  &:focus {
+    outline: none;
+    border-color: var(--wiki-blue);
+  }
+}
+
+.results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.result-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-body);
+
+  &:hover { background: var(--paper); }
+}
+
+.thumb {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &.placeholder::after {
+    content: '?';
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+}
+
+.result-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.result-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.result-extract {
+  font-size: 12px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selected-page {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper-raised);
+
+  .title { flex: 1; font-weight: 600; font-size: 14px; }
+}
+
+.muted.small {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin: 0;
+}

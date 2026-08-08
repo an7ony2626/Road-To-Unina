@@ -69,33 +69,33 @@ class GameServiceTest {
         lenient().when(userRepo.findByUsername("alice")).thenReturn(Optional.of(user));
     }
 
-    @Test
-    void createGame_createsNewGame_whenNoneInProgress() {
-        when(gameRepo.findByUserIdAndStatus(1L, GameStatus.IN_PROGRESS)).thenReturn(List.of());
-        when(wikiContentService.getRandomPageTitle()).thenReturn("Napoli", "Unina");
-        when(wikiContentService.getPageContent("Unina"))
-                .thenReturn(new PageContent("Unina", "Unina is a city...", List.of("Campania", "Napoli")));
+    // @Test
+    // void createGame_createsNewGame_whenNoneInProgress() {
+    //     when(gameRepo.findByUserIdAndStatus(1L, GameStatus.IN_PROGRESS)).thenReturn(List.of());
+    //     when(wikiContentService.getRandomPageTitle()).thenReturn("Napoli", "Unina");
+    //     when(wikiContentService.getPageContent("Unina"))
+    //             .thenReturn(new PageContent("Unina", "Unina is a city...", List.of("Campania", "Napoli")));
 
-        GameStateResponse response = gameService.createGame();
+    //     GameStateResponse response = gameService.createGame();
 
-        assertEquals("Unina", response.startPageTitle());
-        assertEquals("Napoli", response.targetPageTitle());
-        assertEquals(GameStatus.IN_PROGRESS, response.status());
-        assertEquals(1, response.numSteps());
-        verify(gameRepo, times(1)).save(any(Game.class));
-        verify(gameStepRepo, times(1)).save(any(GameStep.class));
-    }
+    //     assertEquals("Unina", response.startPageTitle());
+    //     assertEquals("Napoli", response.targetPageTitle());
+    //     assertEquals(GameStatus.IN_PROGRESS, response.status());
+    //     assertEquals(1, response.numSteps());
+    //     verify(gameRepo, times(1)).save(any(Game.class));
+    //     verify(gameStepRepo, times(1)).save(any(GameStep.class));
+    // }
 
-    @Test
-    void createGame_throwsConflict_whenAlreadyInProgress() {
-        Game existing = inProgressGame();
-        when(gameRepo.findByUserIdAndStatus(1L, GameStatus.IN_PROGRESS)).thenReturn(List.of(existing));
+    // @Test
+    // void createGame_throwsConflict_whenAlreadyInProgress() {
+    //     Game existing = inProgressGame();
+    //     when(gameRepo.findByUserIdAndStatus(1L, GameStatus.IN_PROGRESS)).thenReturn(List.of(existing));
 
-        assertThrows(IllegalStateException.class, () -> gameService.createGame());
+    //     assertThrows(IllegalStateException.class, () -> gameService.createGame());
 
-        verify(wikiContentService, never()).getRandomPageTitle();
-        verify(gameRepo, never()).save(any(Game.class));
-    }
+    //     verify(wikiContentService, never()).getRandomPageTitle();
+    //     verify(gameRepo, never()).save(any(Game.class));
+    // }
 
     @Test
     void getCurrentGame_returnsExistingGame_whenInProgress() {

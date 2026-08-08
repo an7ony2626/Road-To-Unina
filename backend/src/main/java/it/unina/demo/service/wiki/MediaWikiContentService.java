@@ -13,7 +13,9 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.Comparator;
 
 /**
  * Full implementation of WikiContentService: fetches the real rendered
@@ -120,5 +122,57 @@ public class MediaWikiContentService implements WikiContentService {
         for (Element img : document.select("img[src^=//]")) {
             img.attr("src", "https:" + img.attr("src"));
         }
+    }
+
+    @Override
+    public List<PageSearchResult> searchPages(String query) {
+        if (query == null || query.isBlank())
+            return List.of();
+
+        JsonNode response = wikipediaRestClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .queryParam("action", "query")
+                        .queryParam("format", "json")
+                        .queryParam("generator", "search")
+                        .queryParam("gsrsearch", query)
+                        .queryParam("gsrnamespace", "0")
+                        .queryParam("gsrlimit", "8")
+                        .queryParam("prop", "pageimages|extracts")
+                        .queryParam("piprop", "thumbnail")
+                        .queryParam("pithumbsize", "100")
+                        .queryParam("exintro", "1")
+                        .queryParam("explaintext", "1")
+                        .queryParam("exchars", "160")
+                        .build())
+                .retrieve()
+                .body(JsonNode.class);
+
+        JsonNode pages = response.path("query").path("pages");
+        if (!pages.isObject())
+            return List.of();
+
+        // generator=search returns pages keyed by pageid in a JSON object —
+        // NOT in relevance order. Each page's "index" field is what actually
+        // encodes the search rank, so results are sorted by that afterwards.
+        List<RankedResult> ranked = new ArrayList<>();
+        for (JsonNode page : pages) {
+            ranked.add(new RankedResult(
+                    page.path("index").asInt(Integer.MAX_VALUE),
+                    new PageSearchResult(
+                            page.path("title").asString(""),
+                            page.path("thumbnail").path("source").asString(null),
+                            page.path("extract").asString(""))
+            ));
+        }
+
+        return ranked.stream()
+                .sorted(Comparator.comparingInt(RankedResult::rank))
+                .map(RankedResult::result)
+                .toList();
+    }
+
+    // Local pairing of a search hit with its relevance rank, used only to
+    // sort the response above — never exposed outside this method.
+    private record RankedResult(int rank, PageSearchResult result) {
     }
 }

@@ -1,5 +1,6 @@
 package it.unina.demo.controller;
 
+import it.unina.demo.dto.request.CreateGameRequest;
 import it.unina.demo.dto.request.FollowLinkRequest;
 import it.unina.demo.dto.request.UpdateGameStatusRequest;
 import it.unina.demo.dto.response.CompletedGameDetailResponse;
@@ -24,6 +25,8 @@ import java.util.List;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
+
+
 @RestController
 @RequestMapping("/api/games")
 @RequiredArgsConstructor
@@ -31,16 +34,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 public class GameController {
 
     private final GameService gameService;
-
-    // Strict REST: POST always creates. Conflict (already-in-progress
-    // game) is a 409, not a silent "here's your other game" 200 — the
-    // client is expected to call GET /current first to decide whether
-    // to resume instead of creating.
-    @PostMapping
-    public ResponseEntity<GameStateResponse> createGame() {
-        GameStateResponse game = gameService.createGame();
-        return ResponseEntity.created(URI.create("/api/games/" + game.gameId())).body(game);
-    }
 
     // Static segment "current" is matched before the {id} template by
     // Spring's path matching, no ambiguity with GET /{id}.
@@ -101,5 +94,12 @@ public class GameController {
     @GetMapping("/completed/{id}")
     public CompletedGameDetailResponse getCompletedGame(@PathVariable Long id) {
         return gameService.getCompletedGameDetail(id);
+    }
+
+    // GameController.java
+    @PostMapping
+    public ResponseEntity<GameStateResponse> createGame(@RequestBody CreateGameRequest request) {
+        GameStateResponse game = gameService.createGame(request);
+        return ResponseEntity.created(URI.create("/api/games/" + game.gameId())).body(game);
     }
 }

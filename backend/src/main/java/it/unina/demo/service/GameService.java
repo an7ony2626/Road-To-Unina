@@ -1,5 +1,6 @@
 package it.unina.demo.service;
 
+import it.unina.demo.dto.request.CreateGameRequest;
 import it.unina.demo.dto.request.FollowLinkRequest;
 import it.unina.demo.dto.response.CompletedGameDetailResponse;
 import it.unina.demo.dto.response.CompletedGameSummaryResponse;
@@ -42,23 +43,31 @@ public class GameService {
     private final WikiContentService wikiContentService;
     private final SecurityUtil securityUtil;
 
+    // GameService.java
     @Transactional
-    public GameStateResponse createGame() {
+    public GameStateResponse createGame(CreateGameRequest request) {
         User user = getCurrentUser();
 
         List<Game> existing = gameRepo.findByUserIdAndStatus(user.getId(), GameStatus.IN_PROGRESS);
         if (!existing.isEmpty())
             throw new IllegalStateException("You already have a game in progress");
 
-        String targetTitle = wikiContentService.getRandomPageTitle();
-        String startTitle = targetTitle;
+        String requestedStart = blankToNull(request.startPageTitle());
+        String requestedTarget = blankToNull(request.targetPageTitle());
 
-        for (int attempt = 0; attempt < MAX_RANDOM_PICK_ATTEMPTS && startTitle.equals(targetTitle); attempt++) {
-            startTitle = wikiContentService.getRandomPageTitle();
-        }
+        if (requestedStart != null && requestedTarget != null && requestedStart.equalsIgnoreCase(requestedTarget))
+            throw new IllegalArgumentException("Start and target page must be different");
+
+        String targetTitle = requestedTarget != null
+                ? wikiContentService.getPageContent(requestedTarget).title()
+                : wikiContentService.getRandomPageTitle();
+
+        String startTitle = requestedStart != null
+                ? wikiContentService.getPageContent(requestedStart).title()
+                : pickRandomStartDistinctFrom(targetTitle);
 
         if (startTitle.equals(targetTitle))
-            throw new IllegalStateException("Could not pick two distinct random pages, try again");
+            throw new IllegalStateException("Could not pick two distinct pages, try again");
 
         PageContent startPage = wikiContentService.getPageContent(startTitle);
 
@@ -83,6 +92,18 @@ public class GameService {
         gameStepRepo.save(firstStep);
 
         return buildGameState(game, startPage, List.of(firstStep));
+    }
+
+    private String blankToNull(String value) {
+        return (value == null || value.isBlank()) ? null : value;
+    }
+
+    private String pickRandomStartDistinctFrom(String targetTitle) {
+        String startTitle = targetTitle;
+        for (int attempt = 0; attempt < MAX_RANDOM_PICK_ATTEMPTS && startTitle.equals(targetTitle); attempt++) {
+            startTitle = wikiContentService.getRandomPageTitle();
+        }
+        return startTitle;
     }
 
     public GameStateResponse getCurrentGame() {

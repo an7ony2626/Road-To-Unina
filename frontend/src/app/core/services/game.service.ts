@@ -7,8 +7,8 @@ import { CompletedGameSummary, GameState, LeaderboardEntry } from '../models/gam
 export class GameService {
   private readonly http = inject(HttpClient);
 
-  createGame(): Observable<GameState> {
-    return this.http.post<GameState>('/api/games', {});
+  createGame(startPageTitle?: string, targetPageTitle?: string): Observable<GameState> {
+    return this.http.post<GameState>('/api/games', { startPageTitle, targetPageTitle });
   }
 
   // GET /current returns 404 when there is no game in progress — that's

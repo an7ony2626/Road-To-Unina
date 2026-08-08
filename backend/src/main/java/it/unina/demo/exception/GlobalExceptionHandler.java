@@ -10,6 +10,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import it.unina.demo.service.wiki.WikiPageNotFoundException;
+
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -49,14 +51,15 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     }
 
-    // Previously this swallowed every unexpected exception with zero
-    // trace anywhere — a real bug had to be diagnosed blind because
-    // the terminal showed nothing at all. Logging the full exception
-    // here doesn't change client-facing behavior (still a bare 500,
-    // no internal details leaked) but makes failures diagnosable.
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleServerError(Exception e) {
         log.error("Unhandled exception", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error");
+    }
+
+    // GlobalExceptionHandler.java — aggiungi
+    @ExceptionHandler(WikiPageNotFoundException.class)
+    public ResponseEntity<String> handleWikiPageNotFound(WikiPageNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
     }
 }
