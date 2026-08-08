@@ -10,4 +10,8 @@ export class WikiService {
   search(query: string): Observable<WikiSearchResult[]> {
     return this.http.get<WikiSearchResult[]>('/api/wiki/search', { params: { q: query } });
   }
+
+  getRandom(): Observable<WikiSearchResult> {
+    return this.http.get<WikiSearchResult>('/api/wiki/random');
+  }
 }

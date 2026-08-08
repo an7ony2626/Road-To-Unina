@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input, output, signal} from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { debounceTime, distinctUntilChanged, of, switchMap, tap } from 'rxjs';
@@ -22,40 +22,49 @@ import { WikiSearchResult } from '../../core/models/wiki-search.model';
             }
           </span>
           <span class="title">{{ page.title }}</span>
-          <button type="button" class="link-button" (click)="clear()">Cambia</button>
+          <button type="button" class="change-button" (click)="clear()">Cambia</button>
         </div>
       } @else {
-        <input
-          type="text"
-          class="search-input"
-          [formControl]="queryControl"
-          placeholder="Cerca una pagina Wikipedia…"
-          autocomplete="off"
-        />
+        <div class="search-row">
+          <input
+            type="text"
+            class="search-input"
+            [formControl]="queryControl"
+            placeholder="Cerca una pagina Wikipedia…"
+            autocomplete="off"
+          />
+          <button type="button" class="random-button" [disabled]="isRandomLoading()" (click)="pickRandom()">
+            {{ isRandomLoading() ? '…' : '🎲 Random' }}
+          </button>
+        </div>
 
-        @if (isSearching()) {
-          <p class="muted small">Ricerca in corso…</p>
-        } @else if (results().length > 0) {
-          <ul class="results">
-            @for (result of results(); track result.title) {
-              <li>
-                <button type="button" class="result-row" (click)="select(result)">
-                  <span class="thumb" [class.placeholder]="!result.thumbnailUrl">
-                    @if (result.thumbnailUrl) {
-                      <img [src]="result.thumbnailUrl" [alt]="result.title" />
-                    }
-                  </span>
-                  <span class="result-text">
-                    <span class="result-title">{{ result.title }}</span>
-                    @if (result.extract) {
-                      <span class="result-extract">{{ result.extract }}</span>
-                    }
-                  </span>
-                </button>
-              </li>
-            }
-          </ul>
-        }
+        <!-- position: relative anchor so the dropdown below can float
+             without pushing the rest of the page down (see scss) -->
+        <div class="results-anchor">
+          @if (isSearching()) {
+            <p class="dropdown-message">Ricerca in corso…</p>
+          } @else if (results().length > 0) {
+            <ul class="results">
+              @for (result of results(); track result.title) {
+                <li>
+                  <button type="button" class="result-row" (click)="select(result)">
+                    <span class="thumb" [class.placeholder]="!result.thumbnailUrl">
+                      @if (result.thumbnailUrl) {
+                        <img [src]="result.thumbnailUrl" [alt]="result.title" />
+                      }
+                    </span>
+                    <span class="result-text">
+                      <span class="result-title">{{ result.title }}</span>
+                      @if (result.extract) {
+                        <span class="result-extract">{{ result.extract }}</span>
+                      }
+                    </span>
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </div>
       }
     </div>
   `,
@@ -69,6 +78,7 @@ export class PageSearchComponent {
   readonly queryControl = new FormControl('', { nonNullable: true });
   readonly selected = signal<WikiSearchResult | null>(null);
   readonly isSearching = signal(false);
+  readonly isRandomLoading = signal(false);
 
   readonly results = toSignal(
     this.queryControl.valueChanges.pipe(
@@ -89,6 +99,19 @@ export class PageSearchComponent {
     this.selected.set(result);
     this.queryControl.setValue('', { emitEvent: false });
     this.pageSelected.emit(result);
+  }
+
+  pickRandom(): void {
+    if (this.isRandomLoading()) return;
+    this.isRandomLoading.set(true);
+
+    this.wikiService.getRandom().subscribe({
+      next: (result) => {
+        this.isRandomLoading.set(false);
+        this.select(result);
+      },
+      error: () => this.isRandomLoading.set(false),
+    });
   }
 
   clear(): void {

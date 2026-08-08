@@ -3,6 +3,7 @@ package it.unina.demo.controller;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import it.unina.demo.dto.response.WikiSearchResultResponse;
+import it.unina.demo.service.wiki.PageSearchResult;
 import it.unina.demo.service.wiki.WikiContentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,5 +28,12 @@ public class WikiController {
         return wikiContentService.searchPages(query).stream()
                 .map(r -> new WikiSearchResultResponse(r.title(), r.thumbnailUrl(), r.extract()))
                 .toList();
+    }
+
+    // controller/WikiController.java — aggiungi accanto a /search
+    @GetMapping("/random")
+    public WikiSearchResultResponse random() {
+        PageSearchResult result = wikiContentService.getRandomPage();
+        return new WikiSearchResultResponse(result.title(), result.thumbnailUrl(), result.extract());
     }
 }

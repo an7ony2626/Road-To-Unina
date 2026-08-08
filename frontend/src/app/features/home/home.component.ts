@@ -28,9 +28,15 @@ const REQUEST_TIMEOUT_MS = 10_000;
       <main class="content">
         <section class="status-card">
           <svg class="route" viewBox="0 0 320 40" aria-hidden="true">
-            <line x1="16" y1="20" x2="304" y2="20" stroke="var(--line)" stroke-width="2" stroke-dasharray="3 6" />
-            <circle [attr.cx]="progressX()" cy="20" r="7" fill="var(--wiki-blue)" />
-            <circle cx="304" cy="20" r="7" fill="var(--route-red)" />
+            <line
+              x1="16" y1="20" x2="304" y2="20"
+              stroke="var(--ink)"
+              stroke-width="3"
+              stroke-dasharray="4 8"
+              stroke-linecap="round"
+            />
+            <circle [attr.cx]="progressX()" cy="20" r="10" fill="var(--wiki-blue)" />
+            <circle cx="304" cy="20" r="10" fill="var(--route-red)" />
           </svg>
 
           @if (isLoadingCurrent()) {

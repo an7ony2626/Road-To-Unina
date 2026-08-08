@@ -58,8 +58,8 @@
 .route {
   display: block;
   width: 100%;
-  max-width: 320px;
-  height: 24px;
+  max-width: 480px;
+  height: 40px;
   margin: 0 auto 24px;
 
   circle {
@@ -194,7 +194,7 @@ h1 {
 
 .picker-arrow {
   flex-shrink: 0;
-  margin-top: 34px; // allinea alla riga dell'input, sotto la label
+  margin-top: 34px;
   color: var(--ink-soft);
   font-size: 18px;
 }

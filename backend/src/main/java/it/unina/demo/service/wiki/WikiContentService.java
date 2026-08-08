@@ -9,5 +9,7 @@ public interface WikiContentService {
 
     String getRandomPageTitle();
 
+    PageSearchResult getRandomPage();
+    
     List<PageSearchResult> searchPages(String query);
 }

@@ -67,20 +67,7 @@ public class MediaWikiContentService implements WikiContentService {
 
     @Override
     public String getRandomPageTitle() {
-        JsonNode response = wikipediaRestClient.get()
-                .uri(uriBuilder -> uriBuilder
-                        .queryParam("action", "query")
-                        .queryParam("format", "json")
-                        .queryParam("list", "random")
-                        .queryParam("rnnamespace", "0")
-                        .queryParam("rnfilterredir", "nonredirects")
-                        .queryParam("rnminsize", "1000")
-                        .queryParam("rnlimit", "1")
-                        .build())
-                .retrieve()
-                .body(JsonNode.class);
-
-        return response.path("query").path("random").get(0).get("title").asString();
+        return getRandomPage().title();
     }
 
     // Edit-section pencils and reference-list "cite" backlinks are noise
@@ -174,5 +161,36 @@ public class MediaWikiContentService implements WikiContentService {
     // Local pairing of a search hit with its relevance rank, used only to
     // sort the response above — never exposed outside this method.
     private record RankedResult(int rank, PageSearchResult result) {
+    }
+
+    @Override
+    public PageSearchResult getRandomPage() {
+        // generator=random (instead of list=random) lets pageimages/extracts
+        // ride along in the same call, same trick used in searchPages.
+        JsonNode response = wikipediaRestClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .queryParam("action", "query")
+                        .queryParam("format", "json")
+                        .queryParam("generator", "random")
+                        .queryParam("grnnamespace", "0")
+                        .queryParam("grnfilterredir", "nonredirects")
+                        .queryParam("grnminsize", "1000")
+                        .queryParam("grnlimit", "1")
+                        .queryParam("prop", "pageimages|extracts")
+                        .queryParam("piprop", "thumbnail")
+                        .queryParam("pithumbsize", "100")
+                        .queryParam("exintro", "1")
+                        .queryParam("explaintext", "1")
+                        .queryParam("exchars", "160")
+                        .build())
+                .retrieve()
+                .body(JsonNode.class);
+
+        JsonNode page = response.path("query").path("pages").iterator().next();
+
+        return new PageSearchResult(
+                page.path("title").asString(""),
+                page.path("thumbnail").path("source").asString(null),
+                page.path("extract").asString(""));
     }
 }
