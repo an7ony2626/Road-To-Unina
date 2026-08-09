@@ -66,4 +66,17 @@ public class Game {
 
     @Column(name = "num_steps", nullable = false)
     private Integer numSteps;
+
+    // Banked (frozen) active playtime in seconds, accumulated across
+    // pause/resume cycles. Combined with lastResumedAt this replaces a
+    // naive (now - startedAt) calculation, which would count idle time
+    // spent away from the game as "time taken".
+    @Column(name = "active_seconds", nullable = false)
+    private Long activeSeconds;
+
+    // Timestamp of the last resume. Null means the game clock is
+    // currently paused (banked into activeSeconds); non-null means the
+    // clock is running and elapsed = activeSeconds + (now - lastResumedAt).
+    @Column(name = "last_resumed_at")
+    private LocalDateTime lastResumedAt;
 }

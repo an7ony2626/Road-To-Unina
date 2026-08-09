@@ -24,7 +24,8 @@ import { WikiArticleComponent } from './wiki-article/wiki-article.component';
         <div class="topbar-actions">
           <span class="timer mono">{{ elapsedLabel() }}</span>
           <span class="steps mono">{{ game()?.numSteps ?? 0 }} mosse</span>
-          <button type="button" class="link-button" (click)="abandon()">Abbandona</button>
+          <button type="button" class="link-button" (click)="goHome()">Esci</button>
+          <button type="button" class="link-button" (click)="abandon()">Arrenditi</button>
         </div>
       </header>
 
@@ -40,8 +41,7 @@ import { WikiArticleComponent } from './wiki-article/wiki-article.component';
               <strong>{{ game()!.numSteps }}</strong> mosse e
               <strong>{{ elapsedLabel() }}</strong>.
             </p>
-            <button type="button" class="link-button" (click)="goHome()">Esci</button>
-            <button type="button" class="link-button" (click)="abandon()">Arrenditi</button>
+            <button type="button" class="cta" (click)="goHome()">Torna alla home</button>
           </div>
         </div>
       } @else {
@@ -70,7 +70,8 @@ export class GameComponent implements OnInit, OnDestroy {
   readonly elapsedLabel = signal('00:00');
 
   private timerHandle?: ReturnType<typeof setInterval>;
-  private startedAtMs = 0;
+  private baselineElapsedSeconds = 0;
+  private baselineWallClockMs = 0;
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
@@ -110,7 +111,20 @@ export class GameComponent implements OnInit, OnDestroy {
     this.gameService.abandonGame(game.gameId).subscribe(() => this.goHome());
   }
 
+  // "Esci": if the game is still in progress, freeze the server-side
+  // clock first so idle time away doesn't count, then navigate away
+  // regardless of whether that call succeeds — a network hiccup here
+  // shouldn't trap the player on the game page.
   goHome(): void {
+    const game = this.game();
+    if (game?.status === 'IN_PROGRESS') {
+      this.gameService.pauseGame(game.gameId).subscribe({
+        next: () => this.router.navigateByUrl('/'),
+        error: () => this.router.navigateByUrl('/'),
+      });
+      return;
+    }
+
     this.router.navigateByUrl('/');
   }
 
@@ -121,7 +135,8 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   private syncTimer(game: GameState): void {
-    this.startedAtMs = new Date(game.startedAt).getTime();
+    this.baselineElapsedSeconds = game.elapsedSeconds;
+    this.baselineWallClockMs = Date.now();
     this.updateElapsedLabel();
 
     if (game.status !== 'IN_PROGRESS') {
@@ -135,7 +150,8 @@ export class GameComponent implements OnInit, OnDestroy {
   }
 
   private updateElapsedLabel(): void {
-    const elapsedSeconds = Math.max(0, Math.floor((Date.now() - this.startedAtMs) / 1000));
+    const elapsedSeconds =
+      this.baselineElapsedSeconds + Math.floor((Date.now() - this.baselineWallClockMs) / 1000);
     const minutes = Math.floor(elapsedSeconds / 60)
       .toString()
       .padStart(2, '0');

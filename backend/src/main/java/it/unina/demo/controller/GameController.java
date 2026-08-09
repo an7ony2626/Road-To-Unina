@@ -96,6 +96,15 @@ public class GameController {
         return gameService.getCompletedGameDetail(id);
     }
 
+    // Called when the player clicks "Esci": freezes the accumulated
+    // active playtime without abandoning the game, so idle time away
+    // from the game isn't counted when they resume.
+    @PostMapping("/{id}/pause")
+    public ResponseEntity<Void> pauseGame(@PathVariable Long id) {
+        gameService.pauseGame(id);
+        return ResponseEntity.noContent().build();
+    }
+
     // GameController.java
     @PostMapping
     public ResponseEntity<GameStateResponse> createGame(@RequestBody CreateGameRequest request) {

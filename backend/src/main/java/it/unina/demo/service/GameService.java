@@ -78,6 +78,8 @@ public class GameService {
                 .status(GameStatus.IN_PROGRESS)
                 .startedAt(LocalDateTime.now())
                 .numSteps(1)
+                .activeSeconds(0L)
+                .lastResumedAt(LocalDateTime.now())
                 .build();
 
         gameRepo.save(game);
@@ -146,6 +148,7 @@ public class GameService {
         game.setNumSteps(nextStepNumber);
 
         if (nextPage.title().equals(game.getTargetPageTitle())) {
+            bankActiveTime(game);
             game.setStatus(GameStatus.COMPLETED);
             game.setEndedAt(LocalDateTime.now());
         }
@@ -160,13 +163,52 @@ public class GameService {
         User user = getCurrentUser();
         Game game = getOwnedInProgressGame(user, gameId);
 
+        bankActiveTime(game);
         game.setStatus(GameStatus.ABANDONED);
         game.setEndedAt(LocalDateTime.now());
     }
 
+    // Called when the player clicks "Esci": freezes the accumulated
+    // active playtime and stops the clock, without ending the game.
+    @Transactional
+    public void pauseGame(Long gameId) {
+        User user = getCurrentUser();
+        Game game = getOwnedInProgressGame(user, gameId);
+
+        bankActiveTime(game);
+    }
+
+    // Banks the time elapsed since the clock last started running into
+    // activeSeconds, then stops the clock. A no-op if already paused.
+    private void bankActiveTime(Game game) {
+        if (game.getLastResumedAt() == null) return;
+
+        long delta = Duration.between(game.getLastResumedAt(), LocalDateTime.now()).getSeconds();
+        game.setActiveSeconds(game.getActiveSeconds() + delta);
+        game.setLastResumedAt(null);
+    }
+
+    // Called whenever the player opens the game (GET /{id}): if the
+    // clock was paused, this is the moment play resumes.
+    private void resumeIfPaused(Game game) {
+        if (game.getStatus() == GameStatus.IN_PROGRESS && game.getLastResumedAt() == null) {
+            game.setLastResumedAt(LocalDateTime.now());
+        }
+    }
+
+    private long computeElapsedSeconds(Game game) {
+        long banked = game.getActiveSeconds();
+        if (game.getLastResumedAt() != null) {
+            banked += Duration.between(game.getLastResumedAt(), LocalDateTime.now()).getSeconds();
+        }
+        return banked;
+    }
+
+    @Transactional
     public GameStateResponse getGameState(Long gameId) {
         User user = getCurrentUser();
         Game game = getOwnedGame(user, gameId);
+        resumeIfPaused(game);
         return buildGameState(game);
     }
 
@@ -228,7 +270,7 @@ public class GameService {
                 currentPage.content(),
                 currentPage.linkTitles(),
                 path,
-                game.getStartedAt()
+                computeElapsedSeconds(game)
         );
     }
 
@@ -256,7 +298,7 @@ public class GameService {
                 game.getStartPageTitle(),
                 game.getTargetPageTitle(),
                 game.getNumSteps(),
-                Duration.between(game.getStartedAt(), game.getEndedAt()).getSeconds(),
+                game.getActiveSeconds(),
                 path
         );
     }
@@ -268,7 +310,7 @@ public class GameService {
                 game.getStartPageTitle(),
                 game.getTargetPageTitle(),
                 game.getNumSteps(),
-                Duration.between(game.getStartedAt(), game.getEndedAt()).getSeconds()
+                game.getActiveSeconds()
         );
     }
 }

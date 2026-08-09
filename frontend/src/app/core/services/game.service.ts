@@ -11,6 +11,9 @@ export class GameService {
     return this.http.post<GameState>('/api/games', { startPageTitle, targetPageTitle });
   }
 
+  // GET /current returns 404 when there is no game in progress — that's
+  // an expected state, not a failure, so it's translated to null here
+  // rather than propagated as an error the caller has to catch.
   getCurrentGame(): Observable<GameState | null> {
     return this.http.get<GameState>('/api/games/current').pipe(
       catchError((err: HttpErrorResponse) => (err.status === 404 ? of(null) : (() => { throw err; })())),
@@ -27,6 +30,12 @@ export class GameService {
 
   abandonGame(id: number): Observable<GameState> {
     return this.http.patch<GameState>(`/api/games/${id}`, { status: 'ABANDONED' });
+  }
+
+  // Called on "Esci": freezes the server-side clock without abandoning
+  // the game, so idle time away from the game isn't counted on resume.
+  pauseGame(id: number): Observable<void> {
+    return this.http.post<void>(`/api/games/${id}/pause`, {});
   }
 
   getLeaderboard(): Observable<LeaderboardEntry[]> {
