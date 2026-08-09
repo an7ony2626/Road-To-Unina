@@ -33,6 +33,8 @@ CREATE TABLE games (
     started_at         TIMESTAMP    NOT NULL DEFAULT now(),
     ended_at           TIMESTAMP,
     num_steps          INT          NOT NULL DEFAULT 0,
+    active_seconds     BIGINT       NOT NULL DEFAULT 0,
+    last_resumed_at    TIMESTAMP,
 
     CONSTRAINT fk_games_user
         FOREIGN KEY (user_id) REFERENCES users(id)
@@ -43,6 +45,9 @@ CREATE TABLE games (
 
     CONSTRAINT chk_games_num_steps_non_negative
         CHECK (num_steps >= 0),
+
+    CONSTRAINT chk_games_active_seconds_non_negative
+        CHECK (active_seconds >= 0),
 
     CONSTRAINT chk_games_ended_at_consistency
         CHECK (
