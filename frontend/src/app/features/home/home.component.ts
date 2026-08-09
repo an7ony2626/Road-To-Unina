@@ -22,56 +22,66 @@ const REQUEST_TIMEOUT_MS = 10_000;
       <header class="topbar">
         <span class="brand">WikiRace</span>
         <div class="topbar-actions">
-          <span class="username">{{ auth.username() }}</span>
-          <button type="button" class="link-button" (click)="logout()">Esci</button>
+          @if (auth.isAuthenticated()) {
+            <span class="username">{{ auth.username() }}</span>
+            <button type="button" class="link-button" (click)="logout()">Esci</button>
+          } @else {
+            <a routerLink="/login" class="link-button">Accedi</a>
+            <a routerLink="/register" class="link-button">Registrati</a>
+          }
         </div>
       </header>
 
       <main class="content">
         <section class="status-card">
-          <svg class="route" viewBox="0 0 320 40" aria-hidden="true">
-            <line
-              x1="16" y1="20" x2="304" y2="20"
-              stroke="var(--ink)"
-              stroke-width="3"
-              stroke-dasharray="4 8"
-              stroke-linecap="round"
-            />
-            <circle [attr.cx]="progressX()" cy="20" r="10" fill="var(--wiki-blue)" />
-            <circle cx="304" cy="20" r="10" fill="var(--route-red)" />
-          </svg>
-
-          @if (isLoadingCurrent()) {
-            <p class="muted">Verifica partita in corso…</p>
-          } @else if (currentLoadFailed()) {
-            <p class="error">Impossibile verificare la partita in corso.</p>
-            <button type="button" class="cta" (click)="loadCurrentGame()">Riprova</button>
-          } @else if (currentGame()) {
-            <h1>Sfida in corso</h1>
-            <p class="route-labels">
-              <strong>{{ currentGame()!.startPageTitle }}</strong>
-              →
-              <strong>{{ currentGame()!.targetPageTitle }}</strong>
-            </p>
-            <p class="muted">{{ currentGame()!.numSteps }} mosse fatte finora</p>
-            <button type="button" class="cta" (click)="resumeGame()">Riprendi la sfida</button>
+          @if (!auth.isAuthenticated()) {
+            <h1>Benvenuto su WikiRace</h1>
+            <p class="muted">Accedi per avviare una sfida. Puoi comunque esplorare classifica e partite concluse qui sotto.</p>
           } @else {
-            <h1>Pronto per una sfida?</h1>
-            <p class="muted">Lascia scegliere il caso, oppure imposta tu le pagine di partenza e arrivo.</p>
+            <svg class="route" viewBox="0 0 320 40" aria-hidden="true">
+              <line
+                x1="16" y1="20" x2="304" y2="20"
+                stroke="var(--ink)"
+                stroke-width="3"
+                stroke-dasharray="4 8"
+                stroke-linecap="round"
+              />
+              <circle [attr.cx]="progressX()" cy="20" r="10" fill="var(--wiki-blue)" />
+              <circle cx="304" cy="20" r="10" fill="var(--route-red)" />
+            </svg>
 
-            <div class="page-picker">
-              <app-page-search label="Pagina di partenza" (pageSelected)="startPageChoice.set($event)" />
-              <span class="picker-arrow" aria-hidden="true">→</span>
-              <app-page-search label="Pagina di arrivo" (pageSelected)="targetPageChoice.set($event)" />
-            </div>
+            @if (isLoadingCurrent()) {
+              <p class="muted">Verifica partita in corso…</p>
+            } @else if (currentLoadFailed()) {
+              <p class="error">Impossibile verificare la partita in corso.</p>
+              <button type="button" class="cta" (click)="loadCurrentGame()">Riprova</button>
+            } @else if (currentGame()) {
+              <h1>Sfida in corso</h1>
+              <p class="route-labels">
+                <strong>{{ currentGame()!.startPageTitle }}</strong>
+                →
+                <strong>{{ currentGame()!.targetPageTitle }}</strong>
+              </p>
+              <p class="muted">{{ currentGame()!.numSteps }} mosse fatte finora</p>
+              <button type="button" class="cta" (click)="resumeGame()">Riprendi la sfida</button>
+            } @else {
+              <h1>Pronto per una sfida?</h1>
+              <p class="muted">Lascia scegliere il caso, oppure imposta tu le pagine di partenza e arrivo.</p>
 
-            @if (startErrorMessage()) {
-              <p class="error">{{ startErrorMessage() }}</p>
+              <div class="page-picker">
+                <app-page-search label="Pagina di partenza" (pageSelected)="startPageChoice.set($event)" />
+                <span class="picker-arrow" aria-hidden="true">→</span>
+                <app-page-search label="Pagina di arrivo" (pageSelected)="targetPageChoice.set($event)" />
+              </div>
+
+              @if (startErrorMessage()) {
+                <p class="error">{{ startErrorMessage() }}</p>
+              }
+
+              <button type="button" class="cta" [disabled]="isStarting()" (click)="startGame()">
+                {{ isStarting() ? 'Creazione…' : 'Inizia una nuova sfida' }}
+              </button>
             }
-
-            <button type="button" class="cta" [disabled]="isStarting()" (click)="startGame()">
-              {{ isStarting() ? 'Creazione…' : 'Inizia una nuova sfida' }}
-            </button>
           }
         </section>
 
@@ -100,8 +110,9 @@ const REQUEST_TIMEOUT_MS = 10_000;
 
         <section class="panel">
           <div class="panel-header">
-            <h2>Partite concluse</h2>
-            <a routerLink="/completed">Vedi tutte</a>
+            <div class="panel-header">
+              <h2>Partite concluse</h2>
+            </div>
           </div>
           @if (isLoadingCompleted()) {
             <p class="muted">Caricamento…</p>
@@ -113,9 +124,11 @@ const REQUEST_TIMEOUT_MS = 10_000;
             <ul class="completed-list">
               @for (game of recentCompleted(); track game.gameId) {
                 <li>
-                  <span class="name">{{ game.username }}</span>
-                  <span class="route-labels small">{{ game.startPageTitle }} → {{ game.targetPageTitle }}</span>
-                  <span class="stat mono">{{ game.numSteps }} mosse</span>
+                  <a class="completed-row" [routerLink]="['/completed', game.gameId]">
+                    <span class="name">{{ game.username }}</span>
+                    <span class="route-labels small">{{ game.startPageTitle }} → {{ game.targetPageTitle }}</span>
+                    <span class="stat mono">{{ game.numSteps }} mosse</span>
+                  </a>
                 </li>
               }
             </ul>
@@ -150,7 +163,11 @@ export class HomeComponent implements OnInit {
   readonly progressX = signal(16);
 
   ngOnInit(): void {
-    this.loadCurrentGame();
+    if (this.auth.isAuthenticated()) {
+      this.loadCurrentGame();
+    } else {
+      this.isLoadingCurrent.set(false);
+    }
     this.loadLeaderboard();
     this.loadCompleted();
   }

@@ -40,7 +40,8 @@ import { WikiArticleComponent } from './wiki-article/wiki-article.component';
               <strong>{{ game()!.numSteps }}</strong> mosse e
               <strong>{{ elapsedLabel() }}</strong>.
             </p>
-            <button type="button" class="cta" (click)="goHome()">Torna alla home</button>
+            <button type="button" class="link-button" (click)="goHome()">Esci</button>
+            <button type="button" class="link-button" (click)="abandon()">Arrenditi</button>
           </div>
         </div>
       } @else {

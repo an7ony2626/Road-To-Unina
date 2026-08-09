@@ -1,5 +1,3 @@
-// Mirrors backend DTOs 1:1 (it.unina.demo.dto.response / entity.GameStatus).
-
 export type GameStatus = 'IN_PROGRESS' | 'COMPLETED' | 'ABANDONED';
 
 export interface GameStep {
@@ -34,4 +32,8 @@ export interface CompletedGameSummary {
   targetPageTitle: string;
   numSteps: number;
   totalTimeSeconds: number;
+}
+
+export interface CompletedGameDetail extends CompletedGameSummary {
+  path: GameStep[];
 }

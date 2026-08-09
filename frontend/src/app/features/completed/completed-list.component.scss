@@ -1,0 +1,88 @@
+.page {
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper-raised);
+}
+
+.brand {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.link-button {
+  color: var(--wiki-blue);
+  font-size: 14px;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.content {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+}
+
+.completed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.completed-list li {
+  border-bottom: 1px solid var(--line);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.completed-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  font-size: 14px;
+  color: inherit;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--wiki-blue);
+  }
+}
+
+.name {
+  font-weight: 600;
+  min-width: 100px;
+}
+
+.route-labels {
+  flex: 1;
+}
+
+.stat {
+  color: var(--ink-soft);
+}
+
+.muted {
+  color: var(--ink-soft);
+}
+
+.error {
+  color: var(--route-red);
+}
