@@ -8,10 +8,10 @@ export class WikiService {
   private readonly http = inject(HttpClient);
 
   search(query: string): Observable<WikiSearchResult[]> {
-    return this.http.get<WikiSearchResult[]>('/api/wiki/search', { params: { q: query } });
+    return this.http.get<WikiSearchResult[]>('${environment.apiUrl}/wiki/search', { params: { q: query } });
   }
 
   getRandom(): Observable<WikiSearchResult> {
-    return this.http.get<WikiSearchResult>('/api/wiki/random');
+    return this.http.get<WikiSearchResult>('${environment.apiUrl}/wiki/random');
   }
 }

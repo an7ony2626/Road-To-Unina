@@ -19,13 +19,13 @@ export class AuthService {
 
   login(request: LoginRequest): Observable<AuthResponse> {
     return this.http
-      .post<AuthResponse>('/api/auth/login', request)
+      .post<AuthResponse>('${environment.apiUrl}/auth/login', request)
       .pipe(tap((response) => this.storeToken(response.token)));
   }
 
   register(request: RegisterRequest): Observable<AuthResponse> {
     return this.http
-      .post<AuthResponse>('/api/auth/register', request)
+      .post<AuthResponse>('${environment.apiUrl}/auth/register', request)
       .pipe(tap((response) => this.storeToken(response.token)));
   }
 
