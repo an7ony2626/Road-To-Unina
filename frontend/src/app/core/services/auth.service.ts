@@ -2,6 +2,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { AuthResponse, LoginRequest, RegisterRequest } from '../models/auth.model';
+import { environment } from '../../environments/environments';
 
 const TOKEN_KEY = 'wikirace_token';
 
@@ -19,13 +20,13 @@ export class AuthService {
 
   login(request: LoginRequest): Observable<AuthResponse> {
     return this.http
-      .post<AuthResponse>('${environment.apiUrl}/auth/login', request)
+      .post<AuthResponse>(`${environment.apiUrl}/auth/login`, request)
       .pipe(tap((response) => this.storeToken(response.token)));
   }
 
   register(request: RegisterRequest): Observable<AuthResponse> {
     return this.http
-      .post<AuthResponse>('${environment.apiUrl}/auth/register', request)
+      .post<AuthResponse>(`${environment.apiUrl}/auth/register`, request)
       .pipe(tap((response) => this.storeToken(response.token)));
   }
 
