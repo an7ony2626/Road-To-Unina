@@ -218,3 +218,29 @@ h1 {
   color: var(--ink-soft);
   font-size: 18px;
 }
+
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.filter-button {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--ink-soft);
+
+  &:hover {
+    color: var(--ink);
+  }
+
+  &.active {
+    background: var(--wiki-blue);
+    border-color: var(--wiki-blue);
+    color: #fff;
+  }
+}

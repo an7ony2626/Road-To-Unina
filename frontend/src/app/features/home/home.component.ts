@@ -132,6 +132,19 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
             <h2>Partite concluse</h2>
             <a routerLink="/completed" class="link-button">Vedi tutte →</a>
           </div>
+
+          <div class="filter-bar">
+              @for (filter of filters; track filter.mode) {
+                <button
+                  type="button"
+                  class="filter-button"
+                  [class.active]="completedMode() === filter.mode"
+                  (click)="selectCompletedMode(filter.mode)"
+                >
+                  {{ filter.label }}
+                </button>
+              }
+            </div>
           @if (isLoadingCompleted()) {
             <p class="muted">Caricamento…</p>
           } @else if (completedLoadFailed()) {
@@ -176,6 +189,7 @@ export class HomeComponent implements OnInit {
   readonly currentGame = signal<GameState | null>(null);
   readonly leaderboard = signal<LeaderboardEntry[]>([]);
   readonly leaderboardMode = signal<GameFilterMode>('ALL');
+  readonly completedMode = signal<GameFilterMode>('ALL');
   readonly recentCompleted = signal<CompletedGameSummary[]>([]);
 
   readonly startPageChoice = signal<WikiSearchResult | null>(null);
@@ -248,8 +262,11 @@ export class HomeComponent implements OnInit {
   }
 
   private loadCompleted(): void {
+    this.isLoadingCompleted.set(true);
+    this.completedLoadFailed.set(false);
+
     this.gameService
-      .getCompletedGames('ALL', 0, RECENT_COMPLETED_SIZE)
+      .getCompletedGames(this.completedMode(), 0, RECENT_COMPLETED_SIZE)
       .pipe(
         timeout(REQUEST_TIMEOUT_MS),
         catchError(() => of('error' as const)),
@@ -264,6 +281,12 @@ export class HomeComponent implements OnInit {
 
         this.recentCompleted.set(result.games);
       });
+  }
+
+  selectCompletedMode(mode: GameFilterMode): void {
+    if (this.completedMode() === mode) return;
+    this.completedMode.set(mode);
+    this.loadCompleted();
   }
 
   startGame(): void {
