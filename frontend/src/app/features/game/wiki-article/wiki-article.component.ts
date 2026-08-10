@@ -35,19 +35,17 @@ export class WikiArticleComponent {
     return this.sanitizer.bypassSecurityTrustHtml(this.html());
   }
 
-  // Wikipedia's own markup is what's rendered, so any click could land
-  // on a nested <span> or <b> inside the link — closest() walks up to
-  // the actual anchor rather than assuming the event target is one.
   protected onClick(event: MouseEvent): void {
     if (this.disabled()) return;
 
     const anchor = (event.target as HTMLElement).closest('a');
     if (!anchor) return;
 
+    event.preventDefault();
+
     const href = anchor.getAttribute('href') ?? '';
     if (!href.startsWith('/wiki/')) return;
 
-    event.preventDefault();
     const title = decodeURIComponent(href.slice('/wiki/'.length).split('#')[0]).replace(/_/g, ' ');
     this.titleClicked.emit(title);
   }
