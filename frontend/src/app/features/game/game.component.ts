@@ -3,10 +3,11 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { GameService } from '../../core/services/game.service';
 import { GameState } from '../../core/models/game.model';
 import { WikiArticleComponent } from './wiki-article/wiki-article.component';
+import { GamePathComponent } from '../../shared/game-path/game-path.component';
 
 @Component({
   selector: 'app-game',
-  imports: [WikiArticleComponent],
+  imports: [WikiArticleComponent, GamePathComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: 'game.component.scss',
   template: `
@@ -23,7 +24,7 @@ import { WikiArticleComponent } from './wiki-article/wiki-article.component';
         </span>
         <div class="topbar-actions">
           <span class="timer mono">{{ elapsedLabel() }}</span>
-          <span class="steps mono">{{ game()?.numSteps ?? 0 }} mosse</span>
+          <span class="steps mono">{{ game()?.moves ?? 0 }} mosse</span>
           <button type="button" class="link-button" (click)="goHome()">Esci</button>
           <button type="button" class="link-button" (click)="abandon()">Arrenditi</button>
         </div>
@@ -38,9 +39,10 @@ import { WikiArticleComponent } from './wiki-article/wiki-article.component';
             <p class="muted">
               Da <strong>{{ game()!.startPageTitle }}</strong> a
               <strong>{{ game()!.targetPageTitle }}</strong> in
-              <strong>{{ game()!.numSteps }}</strong> mosse e
+              <strong>{{ game()!.moves }}</strong> mosse e
               <strong>{{ elapsedLabel() }}</strong>.
             </p>
+            <app-game-path [path]="game()!.path" />
             <button type="button" class="cta" (click)="goHome()">Torna alla home</button>
           </div>
         </div>
@@ -96,6 +98,10 @@ export class GameComponent implements OnInit, OnDestroy {
       next: (updated) => {
         this.applyGameState(updated);
         this.isNavigating.set(false);
+        // New page, new scroll: without this the article keeps
+        // whatever scroll height the player left the previous page
+        // at, instead of opening at the top like a real navigation.
+        window.scrollTo({ top: 0 });
       },
       error: () => {
         this.isNavigating.set(false);

@@ -2,7 +2,6 @@ package it.unina.demo.service;
 
 import it.unina.demo.dto.request.FollowLinkRequest;
 import it.unina.demo.dto.response.CompletedGameDetailResponse;
-//import it.unina.demo.dto.response.CompletedGameSummaryResponse;
 import it.unina.demo.dto.response.GameStateResponse;
 import it.unina.demo.dto.response.LeaderboardEntryResponse;
 import it.unina.demo.entity.Game;
@@ -32,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
-//import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -68,34 +66,6 @@ class GameServiceTest {
         lenient().when(securityUtil.getCurrentUsername()).thenReturn("alice");
         lenient().when(userRepo.findByUsername("alice")).thenReturn(Optional.of(user));
     }
-
-    // @Test
-    // void createGame_createsNewGame_whenNoneInProgress() {
-    //     when(gameRepo.findByUserIdAndStatus(1L, GameStatus.IN_PROGRESS)).thenReturn(List.of());
-    //     when(wikiContentService.getRandomPageTitle()).thenReturn("Napoli", "Unina");
-    //     when(wikiContentService.getPageContent("Unina"))
-    //             .thenReturn(new PageContent("Unina", "Unina is a city...", List.of("Campania", "Napoli")));
-
-    //     GameStateResponse response = gameService.createGame();
-
-    //     assertEquals("Unina", response.startPageTitle());
-    //     assertEquals("Napoli", response.targetPageTitle());
-    //     assertEquals(GameStatus.IN_PROGRESS, response.status());
-    //     assertEquals(1, response.numSteps());
-    //     verify(gameRepo, times(1)).save(any(Game.class));
-    //     verify(gameStepRepo, times(1)).save(any(GameStep.class));
-    // }
-
-    // @Test
-    // void createGame_throwsConflict_whenAlreadyInProgress() {
-    //     Game existing = inProgressGame();
-    //     when(gameRepo.findByUserIdAndStatus(1L, GameStatus.IN_PROGRESS)).thenReturn(List.of(existing));
-
-    //     assertThrows(IllegalStateException.class, () -> gameService.createGame());
-
-    //     verify(wikiContentService, never()).getRandomPageTitle();
-    //     verify(gameRepo, never()).save(any(Game.class));
-    // }
 
     @Test
     void getCurrentGame_returnsExistingGame_whenInProgress() {
@@ -134,7 +104,7 @@ class GameServiceTest {
         GameStateResponse response = gameService.followLink(42L, new FollowLinkRequest("Unina"));
 
         assertEquals(GameStatus.COMPLETED, response.status());
-        assertEquals(2, response.numSteps());
+        assertEquals(1, response.moves());
         assertEquals("Unina", response.currentPageTitle());
     }
 
@@ -189,35 +159,14 @@ class GameServiceTest {
     @Test
     void getLeaderboard_mapsRepositoryRowsToResponses() {
         Object[] row = {1L, "alice", 3L, 5};
-        when(gameRepo.findLeaderboard(GameStatus.COMPLETED)).thenReturn(List.<Object[]>of(row));
+        when(gameRepo.findLeaderboard(GameStatus.COMPLETED, null)).thenReturn(List.<Object[]>of(row));
 
-        List<LeaderboardEntryResponse> leaderboard = gameService.getLeaderboard();
+        List<LeaderboardEntryResponse> leaderboard = gameService.getLeaderboard(null);
 
         assertEquals(1, leaderboard.size());
-        assertEquals(new LeaderboardEntryResponse(1L, "alice", 3L, 5), leaderboard.get(0));
+        // row's MIN(numSteps) is 5 pages visited -> 4 moves (clicks).
+        assertEquals(new LeaderboardEntryResponse(1L, "alice", 3L, 4), leaderboard.get(0));
     }
-
-    // @Test
-    // void getCompletedGames_mapsToSummaries() {
-    //     Game game = Game.builder()
-    //             .id(42L)
-    //             .user(user)
-    //             .startPageTitle("Napoli")
-    //             .targetPageTitle("Unina")
-    //             .status(GameStatus.COMPLETED)
-    //             .startedAt(LocalDateTime.of(2026, 1, 1, 10, 0))
-    //             .endedAt(LocalDateTime.of(2026, 1, 1, 10, 5))
-    //             .numSteps(3)
-    //             .build();
-
-    //     when(gameRepo.findByStatusOrderByStartedAtDesc(GameStatus.COMPLETED)).thenReturn(List.of(game));
-
-    //     List<CompletedGameSummaryResponse> result = gameService.getCompletedGames();
-
-    //     assertEquals(1, result.size());
-    //     assertEquals("alice", result.get(0).username());
-    //     assertEquals(300L, result.get(0).totalTimeSeconds());
-    // }
 
     @Test
     void getCompletedGameDetail_returnsPath_whenGameIsCompleted() {
@@ -230,12 +179,14 @@ class GameServiceTest {
                 .startedAt(LocalDateTime.of(2026, 1, 1, 10, 0))
                 .endedAt(LocalDateTime.of(2026, 1, 1, 10, 2))
                 .numSteps(2)
+                .isRandomChallenge(true)
+                .activeSeconds(120L)
                 .build();
 
         GameStep step1 = stepOf(game, 1, "Napoli");
         GameStep step2 = stepOf(game, 2, "Unina");
 
-        when(gameRepo.findById(42L)).thenReturn(Optional.of(game));
+        when(gameRepo.findByIdWithUser(42L)).thenReturn(Optional.of(game));
         when(gameStepRepo.findByGameIdOrderByStepNumberAsc(42L)).thenReturn(List.of(step1, step2));
 
         CompletedGameDetailResponse response = gameService.getCompletedGameDetail(42L);
@@ -248,7 +199,7 @@ class GameServiceTest {
     @Test
     void getCompletedGameDetail_throwsNotFound_whenGameIsNotCompleted() {
         Game game = inProgressGame();
-        when(gameRepo.findById(42L)).thenReturn(Optional.of(game));
+        when(gameRepo.findByIdWithUser(42L)).thenReturn(Optional.of(game));
 
         assertThrows(jakarta.persistence.EntityNotFoundException.class,
                 () -> gameService.getCompletedGameDetail(42L));

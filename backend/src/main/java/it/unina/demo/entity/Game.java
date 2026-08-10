@@ -79,4 +79,7 @@ public class Game {
     // clock is running and elapsed = activeSeconds + (now - lastResumedAt).
     @Column(name = "last_resumed_at")
     private LocalDateTime lastResumedAt;
+
+    @Column(name = "is_random_challenge", nullable = false)
+    private Boolean isRandomChallenge;
 }

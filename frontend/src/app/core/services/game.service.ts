@@ -1,7 +1,15 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Observable, catchError, of } from 'rxjs';
-import { CompletedGameDetail, CompletedGameSummary, GameState, LeaderboardEntry } from '../models/game.model';
+import {
+  CompletedGameDetail,
+  CompletedGamesPage,
+  GameFilterMode,
+  GameState,
+  LeaderboardEntry,
+} from '../models/game.model';
+
+const COMPLETED_PAGE_SIZE = 10;
 
 @Injectable({ providedIn: 'root' })
 export class GameService {
@@ -38,12 +46,19 @@ export class GameService {
     return this.http.post<void>(`/api/games/${id}/pause`, {});
   }
 
-  getLeaderboard(): Observable<LeaderboardEntry[]> {
-    return this.http.get<LeaderboardEntry[]>('/api/games/leaderboard');
+  getLeaderboard(mode: GameFilterMode = 'ALL'): Observable<LeaderboardEntry[]> {
+    return this.http.get<LeaderboardEntry[]>('/api/games/leaderboard', { params: { mode } });
   }
 
-  getCompletedGames(): Observable<CompletedGameSummary[]> {
-    return this.http.get<CompletedGameSummary[]>('/api/games/completed');
+  // page is 0-based; size defaults to the same page size used for the
+  // "carica altre" on-demand loading in the completed-games list.
+  getCompletedGames(
+    mode: GameFilterMode = 'ALL',
+    page = 0,
+    size = COMPLETED_PAGE_SIZE,
+  ): Observable<CompletedGamesPage> {
+    const params = new HttpParams().set('mode', mode).set('page', page).set('size', size);
+    return this.http.get<CompletedGamesPage>('/api/games/completed', { params });
   }
 
   getCompletedGameDetail(id: number): Observable<CompletedGameDetail> {

@@ -4,12 +4,19 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { catchError, of, timeout } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { GameService } from '../../core/services/game.service';
-import { CompletedGameSummary, GameState, LeaderboardEntry } from '../../core/models/game.model';
+import { CompletedGameSummary, GameFilterMode, GameState, LeaderboardEntry } from '../../core/models/game.model';
 import { WikiSearchResult } from '../../core/models/wiki-search.model';
 import { PageSearchComponent } from '../../shared/page-search/page-search.component';
 import { AnimatedBackgroundComponent } from '../../shared/animated-background/animated-background.component';
 
 const REQUEST_TIMEOUT_MS = 10_000;
+const RECENT_COMPLETED_SIZE = 5;
+
+const FILTERS: { mode: GameFilterMode; label: string }[] = [
+  { mode: 'ALL', label: 'Tutte' },
+  { mode: 'RANDOM', label: 'Casuali' },
+  { mode: 'CUSTOM', label: 'Personalizzate' },
+];
 
 @Component({
   selector: 'app-home',
@@ -62,7 +69,7 @@ const REQUEST_TIMEOUT_MS = 10_000;
                 →
                 <strong>{{ currentGame()!.targetPageTitle }}</strong>
               </p>
-              <p class="muted">{{ currentGame()!.numSteps }} mosse fatte finora</p>
+              <p class="muted">{{ currentGame()!.moves }} mosse fatte finora</p>
               <button type="button" class="cta" (click)="resumeGame()">Riprendi la sfida</button>
             } @else {
               <h1>Pronto per una sfida?</h1>
@@ -89,6 +96,18 @@ const REQUEST_TIMEOUT_MS = 10_000;
           <div class="panel-header">
             <h2>Classifica</h2>
           </div>
+          <div class="filter-bar">
+            @for (filter of filters; track filter.mode) {
+              <button
+                type="button"
+                class="filter-button"
+                [class.active]="leaderboardMode() === filter.mode"
+                (click)="selectLeaderboardMode(filter.mode)"
+              >
+                {{ filter.label }}
+              </button>
+            }
+          </div>
           @if (isLoadingLeaderboard()) {
             <p class="muted">Caricamento…</p>
           } @else if (leaderboardLoadFailed()) {
@@ -101,7 +120,7 @@ const REQUEST_TIMEOUT_MS = 10_000;
                 <li>
                   <span class="name">{{ entry.username }}</span>
                   <span class="stat">{{ entry.gamesCompleted }} partite</span>
-                  <span class="stat mono">{{ entry.bestSteps ?? '—' }} mosse (best)</span>
+                  <span class="stat mono">{{ entry.bestMoves ?? '—' }} mosse (best)</span>
                 </li>
               }
             </ol>
@@ -110,9 +129,8 @@ const REQUEST_TIMEOUT_MS = 10_000;
 
         <section class="panel">
           <div class="panel-header">
-            <div class="panel-header">
-              <h2>Partite concluse</h2>
-            </div>
+            <h2>Partite concluse</h2>
+            <a routerLink="/completed" class="link-button">Vedi tutte →</a>
           </div>
           @if (isLoadingCompleted()) {
             <p class="muted">Caricamento…</p>
@@ -127,7 +145,7 @@ const REQUEST_TIMEOUT_MS = 10_000;
                   <a class="completed-row" [routerLink]="['/completed', game.gameId]">
                     <span class="name">{{ game.username }}</span>
                     <span class="route-labels small">{{ game.startPageTitle }} → {{ game.targetPageTitle }}</span>
-                    <span class="stat mono">{{ game.numSteps }} mosse</span>
+                    <span class="stat mono">{{ game.moves }} mosse</span>
                   </a>
                 </li>
               }
@@ -143,6 +161,8 @@ export class HomeComponent implements OnInit {
   private readonly gameService = inject(GameService);
   private readonly router = inject(Router);
 
+  protected readonly filters = FILTERS;
+
   readonly isLoadingCurrent = signal(true);
   readonly isLoadingLeaderboard = signal(true);
   readonly isLoadingCompleted = signal(true);
@@ -155,6 +175,7 @@ export class HomeComponent implements OnInit {
   readonly startErrorMessage = signal<string | null>(null);
   readonly currentGame = signal<GameState | null>(null);
   readonly leaderboard = signal<LeaderboardEntry[]>([]);
+  readonly leaderboardMode = signal<GameFilterMode>('ALL');
   readonly recentCompleted = signal<CompletedGameSummary[]>([]);
 
   readonly startPageChoice = signal<WikiSearchResult | null>(null);
@@ -192,15 +213,24 @@ export class HomeComponent implements OnInit {
 
         this.currentGame.set(result);
         if (result) {
-          const step = Math.min(result.numSteps, 10);
+          const step = Math.min(result.moves, 10);
           this.progressX.set(16 + step * 26);
         }
       });
   }
 
+  selectLeaderboardMode(mode: GameFilterMode): void {
+    if (this.leaderboardMode() === mode) return;
+    this.leaderboardMode.set(mode);
+    this.loadLeaderboard();
+  }
+
   private loadLeaderboard(): void {
+    this.isLoadingLeaderboard.set(true);
+    this.leaderboardLoadFailed.set(false);
+
     this.gameService
-      .getLeaderboard()
+      .getLeaderboard(this.leaderboardMode())
       .pipe(
         timeout(REQUEST_TIMEOUT_MS),
         catchError(() => of('error' as const)),
@@ -219,7 +249,7 @@ export class HomeComponent implements OnInit {
 
   private loadCompleted(): void {
     this.gameService
-      .getCompletedGames()
+      .getCompletedGames('ALL', 0, RECENT_COMPLETED_SIZE)
       .pipe(
         timeout(REQUEST_TIMEOUT_MS),
         catchError(() => of('error' as const)),
@@ -232,7 +262,7 @@ export class HomeComponent implements OnInit {
           return;
         }
 
-        this.recentCompleted.set(result.slice(0, 5));
+        this.recentCompleted.set(result.games);
       });
   }
 
