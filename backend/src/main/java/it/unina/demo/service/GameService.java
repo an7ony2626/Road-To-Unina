@@ -222,8 +222,8 @@ public class GameService {
         return buildGameState(game);
     }
 
-    public List<LeaderboardEntryResponse> getLeaderboard(Boolean isRandom) {
-        return gameRepo.findLeaderboard(GameStatus.COMPLETED, isRandom).stream()
+    public List<LeaderboardEntryResponse> getLeaderboard(Boolean isRandom, String requiredTargetTitle) {
+        return gameRepo.findLeaderboard(GameStatus.COMPLETED, isRandom, requiredTargetTitle).stream()
                 .map(row -> new LeaderboardEntryResponse(
                         (Long) row[0],
                         (String) row[1],
@@ -291,9 +291,9 @@ public class GameService {
         );
     }
 
-    public CompletedGamesPageResponse getCompletedGames(Boolean isRandom, int page, int size) {
+    public CompletedGamesPageResponse getCompletedGames(Boolean isRandom, String requiredTargetTitle, int page, int size) {
         Page<Game> result = gameRepo.findCompletedGames(
-                GameStatus.COMPLETED, isRandom, PageRequest.of(page, size));
+                GameStatus.COMPLETED, isRandom, requiredTargetTitle, PageRequest.of(page, size));
 
         List<CompletedGameSummaryResponse> games = result.getContent().stream()
                 .map(this::toSummary)

@@ -8,6 +8,7 @@ import { CompletedGameSummary, GameFilterMode, GameState, LeaderboardEntry } fro
 import { WikiSearchResult } from '../../core/models/wiki-search.model';
 import { PageSearchComponent } from '../../shared/page-search/page-search.component';
 import { AnimatedBackgroundComponent } from '../../shared/animated-background/animated-background.component';
+import { movesLabel } from '../../shared/duration/duration.pipe';
 
 const REQUEST_TIMEOUT_MS = 10_000;
 const RECENT_COMPLETED_SIZE = 5;
@@ -16,6 +17,7 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
   { mode: 'ALL', label: 'Tutte' },
   { mode: 'RANDOM', label: 'Casuali' },
   { mode: 'CUSTOM', label: 'Personalizzate' },
+  { mode: 'UNINA', label: 'Road to Unina' },
 ];
 
 @Component({
@@ -69,7 +71,7 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
                 →
                 <strong>{{ currentGame()!.targetPageTitle }}</strong>
               </p>
-              <p class="muted">{{ currentGame()!.moves }} mosse fatte finora</p>
+              <p class="muted">{{ movesLabel(currentGame()!.moves) }} fatte finora</p>
               <button type="button" class="cta" (click)="resumeGame()">Riprendi la sfida</button>
             } @else {
               <h1>Pronto per una sfida?</h1>
@@ -120,7 +122,7 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
                 <li>
                   <span class="name">{{ entry.username }}</span>
                   <span class="stat">{{ entry.gamesCompleted }} partite</span>
-                  <span class="stat mono">{{ entry.bestMoves ?? '—' }} mosse (best)</span>
+                  <span class="stat mono">{{ movesLabel(entry.bestMoves ?? 0) }} (best)</span>
                 </li>
               }
             </ol>
@@ -158,7 +160,7 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
                   <a class="completed-row" [routerLink]="['/completed', game.gameId]">
                     <span class="name">{{ game.username }}</span>
                     <span class="route-labels small">{{ game.startPageTitle }} → {{ game.targetPageTitle }}</span>
-                    <span class="stat mono">{{ game.moves }} mosse</span>
+                    <span class="stat mono">{{ movesLabel(game.moves) }}</span>
                   </a>
                 </li>
               }
@@ -196,6 +198,8 @@ export class HomeComponent implements OnInit {
   readonly targetPageChoice = signal<WikiSearchResult | null>(null);
 
   readonly progressX = signal(16);
+
+  protected readonly movesLabel = movesLabel;
 
   ngOnInit(): void {
     if (this.auth.isAuthenticated()) {

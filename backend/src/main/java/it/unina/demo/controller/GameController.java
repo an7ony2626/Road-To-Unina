@@ -50,7 +50,7 @@ public class GameController {
     public List<LeaderboardEntryResponse> getLeaderboard(
             @RequestParam(defaultValue = "ALL") GameFilterMode mode
     ) {
-        return gameService.getLeaderboard(mode.toIsRandomChallenge());
+        return gameService.getLeaderboard(mode.toIsRandomChallenge(), mode.toRequiredTargetTitle());
     }
 
     @GetMapping("/{id}")
@@ -100,7 +100,7 @@ public class GameController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "" + DEFAULT_COMPLETED_PAGE_SIZE) int size
     ) {
-        return gameService.getCompletedGames(mode.toIsRandomChallenge(), page, size);
+        return gameService.getCompletedGames(mode.toIsRandomChallenge(), mode.toRequiredTargetTitle(), page, size);
     }
 
     @io.swagger.v3.oas.annotations.security.SecurityRequirements

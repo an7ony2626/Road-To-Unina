@@ -5,6 +5,7 @@ import { GameService } from '../../core/services/game.service';
 import { CompletedGameDetail } from '../../core/models/game.model';
 import { GamePathComponent } from '../../shared/game-path/game-path.component';
 import { DurationPipe } from '../../shared/duration/duration.pipe';
+import { movesLabel } from '../../shared/duration/duration.pipe';
 
 const REQUEST_TIMEOUT_MS = 10_000;
 
@@ -31,7 +32,7 @@ const REQUEST_TIMEOUT_MS = 10_000;
               <strong>{{ g.startPageTitle }}</strong> → <strong>{{ g.targetPageTitle }}</strong>
             </p>
             <p class="muted">
-              {{ g.moves }} mosse · {{ g.totalTimeSeconds | duration }}
+              {{ movesLabel(g.moves) }} · {{ g.totalTimeSeconds | duration }}
               · {{ g.isRandomChallenge ? 'Sfida casuale' : 'Sfida personalizzata' }}
             </p>
           </section>
@@ -49,6 +50,8 @@ export class CompletedDetailComponent implements OnInit {
   readonly isLoading = signal(true);
   readonly loadFailed = signal(false);
   readonly game = signal<CompletedGameDetail | null>(null);
+
+  protected readonly movesLabel = movesLabel;
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));

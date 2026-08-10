@@ -4,7 +4,7 @@ export type GameStatus = 'IN_PROGRESS' | 'COMPLETED' | 'ABANDONED';
 
 // Matches GameFilterMode.java. ALL = no filter, RANDOM = both pages
 // left to chance, CUSTOM = at least one page picked by the player.
-export type GameFilterMode = 'ALL' | 'RANDOM' | 'CUSTOM';
+export type GameFilterMode = 'ALL' | 'RANDOM' | 'CUSTOM' | 'UNINA';
 
 export interface GameStep {
   stepNumber: number;

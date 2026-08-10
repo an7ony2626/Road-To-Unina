@@ -13,27 +13,26 @@ import java.util.Optional;
 
 public interface GameRepository extends JpaRepository<Game, Long> {
 
-    // Needed to let a user resume: "riprendere la partita su un
-    // dispositivo diverso" requires finding their in-progress game.
     List<Game> findByUserIdAndStatus(Long userId, GameStatus status);
 
-    // isRandom is nullable: null means "no filter", true/false narrows
-    // to random-challenge or custom-picked games only. Same pattern used
-    // by findLeaderboard below, kept consistent on purpose.
+    // The explicit CAST(... AS string) is required: without it, when
+    // requiredTargetTitle is null, Hibernate/pgjdbc can't infer its
+    // type and sends it to Postgres as bytea, which LOWER() rejects.
     @Query("""
             SELECT g FROM Game g
             JOIN FETCH g.user
             WHERE g.status = :status
             AND (:isRandom IS NULL OR g.isRandomChallenge = :isRandom)
+            AND (:requiredTargetTitle IS NULL OR LOWER(g.targetPageTitle) = LOWER(CAST(:requiredTargetTitle AS string)))
             ORDER BY g.startedAt DESC
             """)
     Page<Game> findCompletedGames(
             @Param("status") GameStatus status,
             @Param("isRandom") Boolean isRandom,
+            @Param("requiredTargetTitle") String requiredTargetTitle,
             Pageable pageable
     );
 
-    // stesso problema latente in getCompletedGameDetail -> serve anche questa
     @Query("""
             SELECT g FROM Game g
             JOIN FETCH g.user
@@ -41,16 +40,19 @@ public interface GameRepository extends JpaRepository<Game, Long> {
             """)
     Optional<Game> findByIdWithUser(@Param("id") Long id);
 
-    // For each user, how many games they completed and their best
-    // (lowest) step count, optionally narrowed to only random-challenge
-    // or only custom-picked games — see GameFilterMode.
+    // Same CAST fix as above, same reason.
     @Query("""
             SELECT g.user.id, g.user.username, COUNT(g), MIN(g.numSteps)
             FROM Game g
             WHERE g.status = :status
             AND (:isRandom IS NULL OR g.isRandomChallenge = :isRandom)
+            AND (:requiredTargetTitle IS NULL OR LOWER(g.targetPageTitle) = LOWER(CAST(:requiredTargetTitle AS string)))
             GROUP BY g.user.id, g.user.username
             ORDER BY MIN(g.numSteps) ASC
             """)
-    List<Object[]> findLeaderboard(@Param("status") GameStatus status, @Param("isRandom") Boolean isRandom);
+    List<Object[]> findLeaderboard(
+            @Param("status") GameStatus status,
+            @Param("isRandom") Boolean isRandom,
+            @Param("requiredTargetTitle") String requiredTargetTitle
+    );
 }

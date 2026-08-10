@@ -4,6 +4,7 @@ import { GameService } from '../../core/services/game.service';
 import { GameState } from '../../core/models/game.model';
 import { WikiArticleComponent } from './wiki-article/wiki-article.component';
 import { GamePathComponent } from '../../shared/game-path/game-path.component';
+import { movesLabel } from '../../shared/duration/duration.pipe';
 
 @Component({
   selector: 'app-game',
@@ -24,7 +25,7 @@ import { GamePathComponent } from '../../shared/game-path/game-path.component';
         </span>
         <div class="topbar-actions">
           <span class="timer mono">{{ elapsedLabel() }}</span>
-          <span class="steps mono">{{ game()?.moves ?? 0 }} mosse</span>
+          <span class="steps mono">{{ movesLabel(game()?.moves ?? 0) }}</span>
           <button type="button" class="link-button" (click)="goHome()">Esci</button>
           <button type="button" class="link-button" (click)="abandon()">Arrenditi</button>
         </div>
@@ -39,7 +40,7 @@ import { GamePathComponent } from '../../shared/game-path/game-path.component';
             <p class="muted">
               Da <strong>{{ game()!.startPageTitle }}</strong> a
               <strong>{{ game()!.targetPageTitle }}</strong> in
-              <strong>{{ game()!.moves }}</strong> mosse e
+              <strong>{{ movesLabel(game()!.moves) }}</strong> e
               <strong>{{ elapsedLabel() }}</strong>.
             </p>
             <app-game-path [path]="game()!.path" />
@@ -75,6 +76,8 @@ export class GameComponent implements OnInit, OnDestroy {
   private baselineElapsedSeconds = 0;
   private baselineWallClockMs = 0;
 
+  protected readonly movesLabel = movesLabel;
+  
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.gameService.getGame(id).subscribe((game) => {

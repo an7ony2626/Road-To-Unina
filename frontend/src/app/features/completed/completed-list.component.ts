@@ -12,6 +12,7 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
   { mode: 'ALL', label: 'Tutte' },
   { mode: 'RANDOM', label: 'Casuali' },
   { mode: 'CUSTOM', label: 'Personalizzate' },
+  { mode: 'UNINA', label: 'Road to Unina' },
 ];
 
 @Component({

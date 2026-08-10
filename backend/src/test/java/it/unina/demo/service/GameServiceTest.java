@@ -159,10 +159,9 @@ class GameServiceTest {
     @Test
     void getLeaderboard_mapsRepositoryRowsToResponses() {
         Object[] row = {1L, "alice", 3L, 5};
-        when(gameRepo.findLeaderboard(GameStatus.COMPLETED, null)).thenReturn(List.<Object[]>of(row));
+        when(gameRepo.findLeaderboard(GameStatus.COMPLETED, null, null)).thenReturn(List.<Object[]>of(row));
 
-        List<LeaderboardEntryResponse> leaderboard = gameService.getLeaderboard(null);
-
+        List<LeaderboardEntryResponse> leaderboard = gameService.getLeaderboard(null, null);
         assertEquals(1, leaderboard.size());
         // row's MIN(numSteps) is 5 pages visited -> 4 moves (clicks).
         assertEquals(new LeaderboardEntryResponse(1L, "alice", 3L, 4), leaderboard.get(0));

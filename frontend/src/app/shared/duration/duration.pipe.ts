@@ -15,3 +15,7 @@ export class DurationPipe implements PipeTransform {
     return hours > 0 ? `${hours}:${mm}:${ss}` : `${mm}:${ss}`;
   }
 }
+
+export function movesLabel(moves: number): string {
+  return moves === 1 ? '1 mossa' : `${moves} mosse`;
+}
