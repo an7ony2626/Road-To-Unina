@@ -5,7 +5,8 @@ public record CompletedGameSummaryResponse(
         String username,
         String startPageTitle,
         String targetPageTitle,
-        Integer numSteps,
-        Long totalTimeSeconds
+        Integer moves,
+        Long totalTimeSeconds,
+        Boolean isRandomChallenge
 ) {
 }

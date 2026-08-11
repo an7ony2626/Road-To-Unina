@@ -7,8 +7,9 @@ public record CompletedGameDetailResponse(
         String username,
         String startPageTitle,
         String targetPageTitle,
-        Integer numSteps,
+        Integer moves,
         Long totalTimeSeconds,
+        Boolean isRandomChallenge,
         List<GameStepResponse> path
 ) {
 }

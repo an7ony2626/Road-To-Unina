@@ -3,12 +3,15 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { catchError, of, timeout } from 'rxjs';
 import { GameService } from '../../core/services/game.service';
 import { CompletedGameDetail } from '../../core/models/game.model';
+import { GamePathComponent } from '../../shared/game-path/game-path.component';
+import { DurationPipe } from '../../shared/duration/duration.pipe';
+import { movesLabel } from '../../shared/duration/duration.pipe';
 
 const REQUEST_TIMEOUT_MS = 10_000;
 
 @Component({
   selector: 'app-completed-detail',
-  imports: [RouterLink],
+  imports: [RouterLink, GamePathComponent, DurationPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: 'completed-detail.component.scss',
   template: `
@@ -28,22 +31,13 @@ const REQUEST_TIMEOUT_MS = 10_000;
             <p class="route-labels">
               <strong>{{ g.startPageTitle }}</strong> → <strong>{{ g.targetPageTitle }}</strong>
             </p>
-            <p class="muted">{{ g.numSteps }} mosse · {{ g.totalTimeSeconds }}s</p>
+            <p class="muted">
+              {{ movesLabel(g.moves) }} · {{ g.totalTimeSeconds | duration }}
+              · {{ g.isRandomChallenge ? 'Sfida casuale' : 'Sfida personalizzata' }}
+            </p>
           </section>
 
-          <section class="path-card">
-            <h2>Percorso seguito</h2>
-            <ol class="path-chain">
-              @for (step of g.path; track step.stepNumber; let last = $last) {
-                <li>
-                  <span class="page-title">{{ step.pageTitle }}</span>
-                  @if (!last) {
-                    <span class="arrow" aria-hidden="true">→</span>
-                  }
-                </li>
-              }
-            </ol>
-          </section>
+          <app-game-path [path]="g.path" />
         }
       </main>
     </div>
@@ -56,6 +50,8 @@ export class CompletedDetailComponent implements OnInit {
   readonly isLoading = signal(true);
   readonly loadFailed = signal(false);
   readonly game = signal<CompletedGameDetail | null>(null);
+
+  protected readonly movesLabel = movesLabel;
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));

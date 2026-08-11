@@ -1,0 +1,40 @@
+.path-card {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 28px 32px;
+}
+
+.path-card h2 {
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+
+.path-chain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.path-chain li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-title {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 14px;
+}
+
+.arrow {
+  color: var(--ink-soft);
+}

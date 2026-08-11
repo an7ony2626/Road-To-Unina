@@ -12,6 +12,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/game/game.component').then((m) => m.GameComponent),
   },
   {
+    path: 'completed',
+    loadComponent: () => import('./features/completed/completed-list.component').then((m) => m.CompletedListComponent),
+  },
+  {
     path: 'completed/:id',
     loadComponent: () => import('./features/completed/completed-detail.component').then((m) => m.CompletedDetailComponent),
   },

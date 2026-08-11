@@ -2,6 +2,8 @@ package it.unina.demo.repository;
 
 import it.unina.demo.entity.Game;
 import it.unina.demo.entity.GameStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,36 +13,46 @@ import java.util.Optional;
 
 public interface GameRepository extends JpaRepository<Game, Long> {
 
-    // Needed to let a user resume: "riprendere la partita su un
-    // dispositivo diverso" requires finding their in-progress game.
     List<Game> findByUserIdAndStatus(Long userId, GameStatus status);
 
-    // GameRepository.java — sostituisce l'uso di findByStatusOrderByStartedAtDesc
+    // The explicit CAST(... AS string) is required: without it, when
+    // requiredTargetTitle is null, Hibernate/pgjdbc can't infer its
+    // type and sends it to Postgres as bytea, which LOWER() rejects.
     @Query("""
             SELECT g FROM Game g
             JOIN FETCH g.user
             WHERE g.status = :status
+            AND (:isRandom IS NULL OR g.isRandomChallenge = :isRandom)
+            AND (:requiredTargetTitle IS NULL OR LOWER(g.targetPageTitle) = LOWER(CAST(:requiredTargetTitle AS string)))
             ORDER BY g.startedAt DESC
             """)
-    List<Game> findByStatusWithUserOrderByStartedAtDesc(@Param("status") GameStatus status);
+    Page<Game> findCompletedGames(
+            @Param("status") GameStatus status,
+            @Param("isRandom") Boolean isRandom,
+            @Param("requiredTargetTitle") String requiredTargetTitle,
+            Pageable pageable
+    );
 
-    // stesso problema latente in getCompletedGameDetail -> serve anche questa
     @Query("""
             SELECT g FROM Game g
             JOIN FETCH g.user
             WHERE g.id = :id
             """)
     Optional<Game> findByIdWithUser(@Param("id") Long id);
-    // Starting point for the leaderboard: for each user, how many games
-    // they completed and their best (lowest) step count. This is
-    // intentionally minimal — refine sorting/tie-breaking rules once the
-    // service layer defines exactly how the ranking should read.
+
+    // Same CAST fix as above, same reason.
     @Query("""
             SELECT g.user.id, g.user.username, COUNT(g), MIN(g.numSteps)
             FROM Game g
             WHERE g.status = :status
+            AND (:isRandom IS NULL OR g.isRandomChallenge = :isRandom)
+            AND (:requiredTargetTitle IS NULL OR LOWER(g.targetPageTitle) = LOWER(CAST(:requiredTargetTitle AS string)))
             GROUP BY g.user.id, g.user.username
             ORDER BY MIN(g.numSteps) ASC
             """)
-    List<Object[]> findLeaderboard(@Param("status") GameStatus status);
+    List<Object[]> findLeaderboard(
+            @Param("status") GameStatus status,
+            @Param("isRandom") Boolean isRandom,
+            @Param("requiredTargetTitle") String requiredTargetTitle
+    );
 }

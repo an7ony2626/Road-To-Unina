@@ -1,15 +1,33 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { Observable, catchError, of } from 'rxjs';
-import { CompletedGameDetail, CompletedGameSummary, GameState, LeaderboardEntry } from '../models/game.model';
+import {
+  CompletedGameDetail,
+  CompletedGamesPage,
+  GameFilterMode,
+  GameState,
+  LeaderboardEntry,
+} from '../models/game.model';
 import { environment } from '../../environments/environments';
+
+const COMPLETED_PAGE_SIZE = 10;
 
 @Injectable({ providedIn: 'root' })
 export class GameService {
   private readonly http = inject(HttpClient);
 
-  createGame(startPageTitle?: string, targetPageTitle?: string): Observable<GameState> {
-    return this.http.post<GameState>(`${environment.apiUrl}/games`, { startPageTitle, targetPageTitle });
+  createGame(
+    startPageTitle?: string,
+    targetPageTitle?: string,
+    startWasRandom = false,
+    targetWasRandom = false,
+  ): Observable<GameState> {
+    return this.http.post<GameState>(`${environment.apiUrl}/games`, {
+      startPageTitle,
+      targetPageTitle,
+      startWasRandom,
+      targetWasRandom,
+    });
   }
 
   // GET /current returns 404 when there is no game in progress — that's
@@ -33,18 +51,21 @@ export class GameService {
     return this.http.patch<GameState>(`${environment.apiUrl}/games/${id}`, { status: 'ABANDONED' });
   }
 
-  // Called on "Esci": freezes the server-side clock without abandoning
-  // the game, so idle time away from the game isn't counted on resume.
   pauseGame(id: number): Observable<void> {
     return this.http.post<void>(`${environment.apiUrl}/games/${id}/pause`, {});
   }
 
-  getLeaderboard(): Observable<LeaderboardEntry[]> {
-    return this.http.get<LeaderboardEntry[]>(`${environment.apiUrl}/games/leaderboard`);
+  getLeaderboard(mode: GameFilterMode = 'ALL'): Observable<LeaderboardEntry[]> {
+    return this.http.get<LeaderboardEntry[]>(`${environment.apiUrl}/games/leaderboard`, { params: { mode } });
   }
 
-  getCompletedGames(): Observable<CompletedGameSummary[]> {
-    return this.http.get<CompletedGameSummary[]>(`${environment.apiUrl}/games/completed`);
+  getCompletedGames(
+    mode: GameFilterMode = 'ALL',
+    page = 0,
+    size = COMPLETED_PAGE_SIZE,
+  ): Observable<CompletedGamesPage> {
+    const params = new HttpParams().set('mode', mode).set('page', page).set('size', size);
+    return this.http.get<CompletedGamesPage>(`${environment.apiUrl}/games/completed`, { params });
   }
 
   getCompletedGameDetail(id: number): Observable<CompletedGameDetail> {

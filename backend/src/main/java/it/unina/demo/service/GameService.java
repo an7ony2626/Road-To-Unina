@@ -4,6 +4,7 @@ import it.unina.demo.dto.request.CreateGameRequest;
 import it.unina.demo.dto.request.FollowLinkRequest;
 import it.unina.demo.dto.response.CompletedGameDetailResponse;
 import it.unina.demo.dto.response.CompletedGameSummaryResponse;
+import it.unina.demo.dto.response.CompletedGamesPageResponse;
 import it.unina.demo.dto.response.GameStateResponse;
 import it.unina.demo.dto.response.GameStepResponse;
 import it.unina.demo.dto.response.LeaderboardEntryResponse;
@@ -20,6 +21,8 @@ import it.unina.demo.util.SecurityUtil;
 import it.unina.demo.util.StringConstants;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
@@ -32,9 +35,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GameService {
 
-    // Safety cap so a pathological run of identical random picks can't
-    // spin forever; with millions of articles this never realistically
-    // triggers more than once.
     private static final int MAX_RANDOM_PICK_ATTEMPTS = 5;
 
     private final GameRepository gameRepo;
@@ -43,7 +43,6 @@ public class GameService {
     private final WikiContentService wikiContentService;
     private final SecurityUtil securityUtil;
 
-    // GameService.java
     @Transactional
     public GameStateResponse createGame(CreateGameRequest request) {
         User user = getCurrentUser();
@@ -57,6 +56,10 @@ public class GameService {
 
         if (requestedStart != null && requestedTarget != null && requestedStart.equalsIgnoreCase(requestedTarget))
             throw new IllegalArgumentException("Start and target page must be different");
+
+        boolean startIsRandom = requestedStart == null || Boolean.TRUE.equals(request.startWasRandom());
+        boolean targetIsRandom = requestedTarget == null || Boolean.TRUE.equals(request.targetWasRandom());
+        boolean isRandomChallenge = startIsRandom && targetIsRandom;
 
         String targetTitle = requestedTarget != null
                 ? wikiContentService.getPageContent(requestedTarget).title()
@@ -78,6 +81,7 @@ public class GameService {
                 .status(GameStatus.IN_PROGRESS)
                 .startedAt(LocalDateTime.now())
                 .numSteps(1)
+                .isRandomChallenge(isRandomChallenge)
                 .activeSeconds(0L)
                 .lastResumedAt(LocalDateTime.now())
                 .build();
@@ -212,13 +216,13 @@ public class GameService {
         return buildGameState(game);
     }
 
-    public List<LeaderboardEntryResponse> getLeaderboard() {
-        return gameRepo.findLeaderboard(GameStatus.COMPLETED).stream()
+    public List<LeaderboardEntryResponse> getLeaderboard(Boolean isRandom, String requiredTargetTitle) {
+        return gameRepo.findLeaderboard(GameStatus.COMPLETED, isRandom, requiredTargetTitle).stream()
                 .map(row -> new LeaderboardEntryResponse(
                         (Long) row[0],
                         (String) row[1],
                         (Long) row[2],
-                        ((Number) row[3]).intValue()
+                        toMoves(((Number) row[3]).intValue())
                 ))
                 .toList();
     }
@@ -248,6 +252,13 @@ public class GameService {
         return game;
     }
 
+    // moves (clicks) = pages visited - 1. Kept as a single named
+    // conversion rather than scattering "- 1" across every mapping
+    // method below.
+    private int toMoves(int numSteps) {
+        return numSteps - 1;
+    }
+
     private GameStateResponse buildGameState(Game game) {
         List<GameStep> steps = gameStepRepo.findByGameIdOrderByStepNumberAsc(game.getId());
         String currentTitle = steps.get(steps.size() - 1).getPageTitle();
@@ -265,7 +276,7 @@ public class GameService {
                 game.getStartPageTitle(),
                 game.getTargetPageTitle(),
                 game.getStatus(),
-                game.getNumSteps(),
+                toMoves(game.getNumSteps()),
                 currentPage.title(),
                 currentPage.content(),
                 currentPage.linkTitles(),
@@ -274,12 +285,16 @@ public class GameService {
         );
     }
 
-    public List<CompletedGameSummaryResponse> getCompletedGames() {
-        return gameRepo.findByStatusWithUserOrderByStartedAtDesc(GameStatus.COMPLETED).stream()
+    public CompletedGamesPageResponse getCompletedGames(Boolean isRandom, String requiredTargetTitle, int page, int size) {
+        Page<Game> result = gameRepo.findCompletedGames(
+                GameStatus.COMPLETED, isRandom, requiredTargetTitle, PageRequest.of(page, size));
+
+        List<CompletedGameSummaryResponse> games = result.getContent().stream()
                 .map(this::toSummary)
                 .toList();
-    }
 
+        return new CompletedGamesPageResponse(games, result.hasNext());
+    }
 
     public CompletedGameDetailResponse getCompletedGameDetail(Long gameId) {
         Game game = gameRepo.findByIdWithUser(gameId)
@@ -297,8 +312,9 @@ public class GameService {
                 game.getUser().getUsername(),
                 game.getStartPageTitle(),
                 game.getTargetPageTitle(),
-                game.getNumSteps(),
+                toMoves(game.getNumSteps()),
                 game.getActiveSeconds(),
+                game.getIsRandomChallenge(),
                 path
         );
     }
@@ -309,8 +325,9 @@ public class GameService {
                 game.getUser().getUsername(),
                 game.getStartPageTitle(),
                 game.getTargetPageTitle(),
-                game.getNumSteps(),
-                game.getActiveSeconds()
+                toMoves(game.getNumSteps()),
+                game.getActiveSeconds(),
+                game.getIsRandomChallenge()
         );
     }
 }

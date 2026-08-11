@@ -33,6 +33,54 @@
   padding: 40px 24px 64px;
 }
 
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.filter-button {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--ink-soft);
+
+  &:hover {
+    color: var(--ink);
+  }
+
+  &.active {
+    background: var(--wiki-blue);
+    border-color: var(--wiki-blue);
+    color: #fff;
+  }
+}
+
+.load-more {
+  display: block;
+  margin: 20px auto 0;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 24px;
+  font-size: 14px;
+  color: var(--wiki-blue);
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--paper-raised);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+}
+
 .completed-list {
   list-style: none;
   margin: 0;

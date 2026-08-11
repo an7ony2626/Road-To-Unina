@@ -101,7 +101,13 @@
   border-radius: var(--radius);
   box-shadow: var(--shadow-card);
   padding: 40px 36px;
-  max-width: 420px;
+  max-width: 640px;
+}
+
+::ng-deep .completed-card .path-card {
+  text-align: left;
+  margin-top: 24px;
+  box-shadow: none;
 }
 
 .cta {

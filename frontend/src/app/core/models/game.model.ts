@@ -2,6 +2,10 @@
 
 export type GameStatus = 'IN_PROGRESS' | 'COMPLETED' | 'ABANDONED';
 
+// Matches GameFilterMode.java. ALL = no filter, RANDOM = both pages
+// left to chance, CUSTOM = at least one page picked by the player.
+export type GameFilterMode = 'ALL' | 'RANDOM' | 'CUSTOM' | 'UNINA';
+
 export interface GameStep {
   stepNumber: number;
   pageTitle: string;
@@ -13,7 +17,7 @@ export interface GameState {
   startPageTitle: string;
   targetPageTitle: string;
   status: GameStatus;
-  numSteps: number;
+  moves: number;
   currentPageTitle: string;
   currentPageContent: string;
   availableLinks: string[];
@@ -24,7 +28,7 @@ export interface LeaderboardEntry {
   userId: number;
   username: string;
   gamesCompleted: number;
-  bestSteps: number | null;
+  bestMoves: number | null;
 }
 
 export interface CompletedGameSummary {
@@ -32,10 +36,16 @@ export interface CompletedGameSummary {
   username: string;
   startPageTitle: string;
   targetPageTitle: string;
-  numSteps: number;
+  moves: number;
   totalTimeSeconds: number;
+  isRandomChallenge: boolean;
 }
 
 export interface CompletedGameDetail extends CompletedGameSummary {
   path: GameStep[];
+}
+
+export interface CompletedGamesPage {
+  games: CompletedGameSummary[];
+  hasMore: boolean;
 }
