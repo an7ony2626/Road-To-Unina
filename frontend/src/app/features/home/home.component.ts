@@ -8,7 +8,6 @@ import { CompletedGameSummary, GameFilterMode, GameState, LeaderboardEntry } fro
 import { WikiSearchResult } from '../../core/models/wiki-search.model';
 import { PageSearchComponent } from '../../shared/page-search/page-search.component';
 import { AnimatedBackgroundComponent } from '../../shared/animated-background/animated-background.component';
-import { movesLabel } from '../../shared/duration/duration.pipe';
 
 const REQUEST_TIMEOUT_MS = 10_000;
 const RECENT_COMPLETED_SIZE = 5;
@@ -71,16 +70,16 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
                 →
                 <strong>{{ currentGame()!.targetPageTitle }}</strong>
               </p>
-              <p class="muted">{{ movesLabel(currentGame()!.moves) }} fatte finora</p>
+              <p class="muted">{{ currentGame()!.moves }} mosse fatte finora</p>
               <button type="button" class="cta" (click)="resumeGame()">Riprendi la sfida</button>
             } @else {
               <h1>Pronto per una sfida?</h1>
               <p class="muted">Lascia scegliere il caso, oppure imposta tu le pagine di partenza e arrivo.</p>
 
               <div class="page-picker">
-                <app-page-search label="Pagina di partenza" (pageSelected)="startPageChoice.set($event)" />
+                <app-page-search label="Pagina di partenza" (pageSelected)="onStartPageSelected($event)" />
                 <span class="picker-arrow" aria-hidden="true">→</span>
-                <app-page-search label="Pagina di arrivo" (pageSelected)="targetPageChoice.set($event)" />
+                <app-page-search label="Pagina di arrivo" (pageSelected)="onTargetPageSelected($event)" />
               </div>
 
               @if (startErrorMessage()) {
@@ -122,7 +121,7 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
                 <li>
                   <span class="name">{{ entry.username }}</span>
                   <span class="stat">{{ entry.gamesCompleted }} partite</span>
-                  <span class="stat mono">{{ movesLabel(entry.bestMoves ?? 0) }} (best)</span>
+                  <span class="stat mono">{{ entry.bestMoves ?? '—' }} mosse (best)</span>
                 </li>
               }
             </ol>
@@ -134,19 +133,18 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
             <h2>Partite concluse</h2>
             <a routerLink="/completed" class="link-button">Vedi tutte →</a>
           </div>
-
           <div class="filter-bar">
-              @for (filter of filters; track filter.mode) {
-                <button
-                  type="button"
-                  class="filter-button"
-                  [class.active]="completedMode() === filter.mode"
-                  (click)="selectCompletedMode(filter.mode)"
-                >
-                  {{ filter.label }}
-                </button>
-              }
-            </div>
+            @for (filter of filters; track filter.mode) {
+              <button
+                type="button"
+                class="filter-button"
+                [class.active]="completedMode() === filter.mode"
+                (click)="selectCompletedMode(filter.mode)"
+              >
+                {{ filter.label }}
+              </button>
+            }
+          </div>
           @if (isLoadingCompleted()) {
             <p class="muted">Caricamento…</p>
           } @else if (completedLoadFailed()) {
@@ -160,7 +158,7 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
                   <a class="completed-row" [routerLink]="['/completed', game.gameId]">
                     <span class="name">{{ game.username }}</span>
                     <span class="route-labels small">{{ game.startPageTitle }} → {{ game.targetPageTitle }}</span>
-                    <span class="stat mono">{{ movesLabel(game.moves) }}</span>
+                    <span class="stat mono">{{ game.moves }} mosse</span>
                   </a>
                 </li>
               }
@@ -191,15 +189,18 @@ export class HomeComponent implements OnInit {
   readonly currentGame = signal<GameState | null>(null);
   readonly leaderboard = signal<LeaderboardEntry[]>([]);
   readonly leaderboardMode = signal<GameFilterMode>('ALL');
-  readonly completedMode = signal<GameFilterMode>('ALL');
   readonly recentCompleted = signal<CompletedGameSummary[]>([]);
+  readonly completedMode = signal<GameFilterMode>('ALL');
 
   readonly startPageChoice = signal<WikiSearchResult | null>(null);
   readonly targetPageChoice = signal<WikiSearchResult | null>(null);
+  // Whether each side was picked via the 🎲 Random button rather than
+  // typed/searched — needed so createGame() can tell the backend this
+  // side was left to chance, even though a concrete title is sent.
+  readonly startWasRandom = signal(false);
+  readonly targetWasRandom = signal(false);
 
   readonly progressX = signal(16);
-
-  protected readonly movesLabel = movesLabel;
 
   ngOnInit(): void {
     if (this.auth.isAuthenticated()) {
@@ -265,6 +266,12 @@ export class HomeComponent implements OnInit {
       });
   }
 
+  selectCompletedMode(mode: GameFilterMode): void {
+    if (this.completedMode() === mode) return;
+    this.completedMode.set(mode);
+    this.loadCompleted();
+  }
+
   private loadCompleted(): void {
     this.isLoadingCompleted.set(true);
     this.completedLoadFailed.set(false);
@@ -287,10 +294,14 @@ export class HomeComponent implements OnInit {
       });
   }
 
-  selectCompletedMode(mode: GameFilterMode): void {
-    if (this.completedMode() === mode) return;
-    this.completedMode.set(mode);
-    this.loadCompleted();
+  onStartPageSelected(event: { page: WikiSearchResult; wasRandom: boolean } | null): void {
+    this.startPageChoice.set(event?.page ?? null);
+    this.startWasRandom.set(event?.wasRandom ?? false);
+  }
+
+  onTargetPageSelected(event: { page: WikiSearchResult; wasRandom: boolean } | null): void {
+    this.targetPageChoice.set(event?.page ?? null);
+    this.targetWasRandom.set(event?.wasRandom ?? false);
   }
 
   startGame(): void {
@@ -298,15 +309,22 @@ export class HomeComponent implements OnInit {
     this.isStarting.set(true);
     this.startErrorMessage.set(null);
 
-    this.gameService.createGame(this.startPageChoice()?.title, this.targetPageChoice()?.title).subscribe({
-      next: (game) => this.router.navigate(['/game', game.gameId]),
-      error: (err: HttpErrorResponse) => {
-        this.isStarting.set(false);
-        this.startErrorMessage.set(
-          typeof err.error === 'string' ? err.error : 'Impossibile creare la partita, riprova.',
-        );
-      },
-    });
+    this.gameService
+      .createGame(
+        this.startPageChoice()?.title,
+        this.targetPageChoice()?.title,
+        this.startWasRandom(),
+        this.targetWasRandom(),
+      )
+      .subscribe({
+        next: (game) => this.router.navigate(['/game', game.gameId]),
+        error: (err: HttpErrorResponse) => {
+          this.isStarting.set(false);
+          this.startErrorMessage.set(
+            typeof err.error === 'string' ? err.error : 'Impossibile creare la partita, riprova.',
+          );
+        },
+      });
   }
 
   resumeGame(): void {

@@ -73,7 +73,10 @@ export class PageSearchComponent {
   private readonly wikiService = inject(WikiService);
 
   readonly label = input.required<string>();
-  readonly pageSelected = output<WikiSearchResult | null>();
+  // Carries whether this pick came from the 🎲 Random button — the
+  // parent needs this to tell GameService the choice was left to
+  // chance, not typed in by the player.
+  readonly pageSelected = output<{ page: WikiSearchResult; wasRandom: boolean } | null>();
 
   readonly queryControl = new FormControl('', { nonNullable: true });
   readonly selected = signal<WikiSearchResult | null>(null);
@@ -95,10 +98,10 @@ export class PageSearchComponent {
     { initialValue: [] as WikiSearchResult[] },
   );
 
-  select(result: WikiSearchResult): void {
+  select(result: WikiSearchResult, wasRandom = false): void {
     this.selected.set(result);
     this.queryControl.setValue('', { emitEvent: false });
-    this.pageSelected.emit(result);
+    this.pageSelected.emit({ page: result, wasRandom });
   }
 
   pickRandom(): void {
@@ -108,7 +111,7 @@ export class PageSearchComponent {
     this.wikiService.getRandom().subscribe({
       next: (result) => {
         this.isRandomLoading.set(false);
-        this.select(result);
+        this.select(result, true);
       },
       error: () => this.isRandomLoading.set(false),
     });

@@ -35,9 +35,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GameService {
 
-    // Safety cap so a pathological run of identical random picks can't
-    // spin forever; with millions of articles this never realistically
-    // triggers more than once.
     private static final int MAX_RANDOM_PICK_ATTEMPTS = 5;
 
     private final GameRepository gameRepo;
@@ -46,7 +43,6 @@ public class GameService {
     private final WikiContentService wikiContentService;
     private final SecurityUtil securityUtil;
 
-    // GameService.java
     @Transactional
     public GameStateResponse createGame(CreateGameRequest request) {
         User user = getCurrentUser();
@@ -61,11 +57,9 @@ public class GameService {
         if (requestedStart != null && requestedTarget != null && requestedStart.equalsIgnoreCase(requestedTarget))
             throw new IllegalArgumentException("Start and target page must be different");
 
-        // A game only counts as a genuine "random challenge" when the
-        // player left BOTH pages to chance. Picking either one lets them
-        // set up an easy shot (e.g. "Città del Vaticano" -> "Papa"),
-        // which belongs in the "custom" bucket instead.
-        boolean isRandomChallenge = requestedStart == null && requestedTarget == null;
+        boolean startIsRandom = requestedStart == null || Boolean.TRUE.equals(request.startWasRandom());
+        boolean targetIsRandom = requestedTarget == null || Boolean.TRUE.equals(request.targetWasRandom());
+        boolean isRandomChallenge = startIsRandom && targetIsRandom;
 
         String targetTitle = requestedTarget != null
                 ? wikiContentService.getPageContent(requestedTarget).title()

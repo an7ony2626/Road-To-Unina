@@ -15,8 +15,18 @@ const COMPLETED_PAGE_SIZE = 10;
 export class GameService {
   private readonly http = inject(HttpClient);
 
-  createGame(startPageTitle?: string, targetPageTitle?: string): Observable<GameState> {
-    return this.http.post<GameState>('/api/games', { startPageTitle, targetPageTitle });
+  createGame(
+    startPageTitle?: string,
+    targetPageTitle?: string,
+    startWasRandom = false,
+    targetWasRandom = false,
+  ): Observable<GameState> {
+    return this.http.post<GameState>('/api/games', {
+      startPageTitle,
+      targetPageTitle,
+      startWasRandom,
+      targetWasRandom,
+    });
   }
 
   // GET /current returns 404 when there is no game in progress — that's
@@ -40,8 +50,6 @@ export class GameService {
     return this.http.patch<GameState>(`/api/games/${id}`, { status: 'ABANDONED' });
   }
 
-  // Called on "Esci": freezes the server-side clock without abandoning
-  // the game, so idle time away from the game isn't counted on resume.
   pauseGame(id: number): Observable<void> {
     return this.http.post<void>(`/api/games/${id}/pause`, {});
   }
@@ -50,8 +58,6 @@ export class GameService {
     return this.http.get<LeaderboardEntry[]>('/api/games/leaderboard', { params: { mode } });
   }
 
-  // page is 0-based; size defaults to the same page size used for the
-  // "carica altre" on-demand loading in the completed-games list.
   getCompletedGames(
     mode: GameFilterMode = 'ALL',
     page = 0,
