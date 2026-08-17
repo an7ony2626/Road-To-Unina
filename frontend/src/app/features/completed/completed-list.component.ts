@@ -23,7 +23,7 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
   template: `
     <div class="page">
       <header class="topbar">
-        <a routerLink="/" class="link-button">← Home</a>
+        <a routerLink="/" class="brand-link">WikiRace</a>
         <span class="brand">Partite concluse</span>
       </header>
 
