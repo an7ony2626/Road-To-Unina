@@ -21,7 +21,15 @@ import { WikiSearchResult } from '../../core/models/wiki-search.model';
               <img [src]="page.thumbnailUrl" [alt]="page.title" />
             }
           </span>
-          <span class="title">{{ page.title }}</span>
+          <a
+            class="title"
+            [href]="wikiUrl(page.title)"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Apri su Wikipedia"
+          >
+            {{ page.title }}
+          </a>
           <button type="button" class="change-button" (click)="clear()">Cambia</button>
         </div>
       } @else {
@@ -97,6 +105,13 @@ export class PageSearchComponent {
     ),
     { initialValue: [] as WikiSearchResult[] },
   );
+
+  // Builds a direct link to the Italian Wikipedia article so the player
+  // can open it in a new tab to see what a random/unfamiliar page is
+  // actually about, without leaving the current challenge.
+  wikiUrl(title: string): string {
+    return `https://it.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
+  }
 
   select(result: WikiSearchResult, wasRandom = false): void {
     this.selected.set(result);

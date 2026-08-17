@@ -183,3 +183,17 @@
     background: var(--paper-raised);
   }
 }
+
+.title {
+    flex: 1;
+    font-weight: 600;
+    font-size: 14px;
+    color: inherit;
+    text-decoration: none;
+    min-width: 0;
+
+    &:hover {
+      color: var(--wiki-blue);
+      text-decoration: underline;
+    }
+  }
