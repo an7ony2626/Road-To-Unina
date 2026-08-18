@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { catchError, of, timeout } from 'rxjs';
 import { GameService } from '../../core/services/game.service';
 import { CompletedGameSummary, GameFilterMode } from '../../core/models/game.model';
 import { DurationPipe } from '../../shared/duration/duration.pipe';
+import { wikiUrl } from '../../shared/wiki-link/wiki-link';
 
 const REQUEST_TIMEOUT_MS = 10_000;
 const PAGE_SIZE = 10;
@@ -51,12 +52,36 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
           <ul class="completed-list">
             @for (game of games(); track game.gameId) {
               <li>
-                <a class="completed-row" [routerLink]="['/completed', game.gameId]">
+                <div
+                  class="completed-row"
+                  tabindex="0"
+                  role="link"
+                  (click)="openDetail(game.gameId)"
+                  (keydown.enter)="openDetail(game.gameId)"
+                >
                   <span class="name">{{ game.username }}</span>
-                  <span class="route-labels">{{ game.startPageTitle }} → {{ game.targetPageTitle }}</span>
+                  <span class="route-labels">
+                    <a
+                      class="wiki-link"
+                      [href]="wikiUrl(game.startPageTitle)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Apri su Wikipedia"
+                      (click)="$event.stopPropagation()"
+                    >{{ game.startPageTitle }}</a>
+                    →
+                    <a
+                      class="wiki-link"
+                      [href]="wikiUrl(game.targetPageTitle)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Apri su Wikipedia"
+                      (click)="$event.stopPropagation()"
+                    >{{ game.targetPageTitle }}</a>
+                  </span>
                   <span class="stat mono">{{ game.moves }} mosse</span>
                   <span class="stat mono">{{ game.totalTimeSeconds | duration }}</span>
-                </a>
+                </div>
               </li>
             }
           </ul>
@@ -73,8 +98,10 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
 })
 export class CompletedListComponent implements OnInit {
   private readonly gameService = inject(GameService);
+  private readonly router = inject(Router);
 
   protected readonly filters = FILTERS;
+  protected readonly wikiUrl = wikiUrl;
 
   readonly isLoading = signal(true);
   readonly isLoadingMore = signal(false);
@@ -93,6 +120,10 @@ export class CompletedListComponent implements OnInit {
     if (this.mode() === mode) return;
     this.mode.set(mode);
     this.loadPage(0, false);
+  }
+
+  openDetail(gameId: number): void {
+    this.router.navigate(['/completed', gameId]);
   }
 
   loadMore(): void {

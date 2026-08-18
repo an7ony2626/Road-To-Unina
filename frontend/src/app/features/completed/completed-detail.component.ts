@@ -6,6 +6,7 @@ import { CompletedGameDetail } from '../../core/models/game.model';
 import { GamePathComponent } from '../../shared/game-path/game-path.component';
 import { DurationPipe } from '../../shared/duration/duration.pipe';
 import { movesLabel } from '../../shared/duration/duration.pipe';
+import { wikiUrl } from '../../shared/wiki-link/wiki-link';
 
 const REQUEST_TIMEOUT_MS = 10_000;
 
@@ -29,7 +30,21 @@ const REQUEST_TIMEOUT_MS = 10_000;
           <section class="summary-card">
             <p class="username">{{ g.username }}</p>
             <p class="route-labels">
-              <strong>{{ g.startPageTitle }}</strong> → <strong>{{ g.targetPageTitle }}</strong>
+              <a
+                class="wiki-link"
+                [href]="wikiUrl(g.startPageTitle)"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Apri su Wikipedia"
+              ><strong>{{ g.startPageTitle }}</strong></a>
+              →
+              <a
+                class="wiki-link"
+                [href]="wikiUrl(g.targetPageTitle)"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Apri su Wikipedia"
+              ><strong>{{ g.targetPageTitle }}</strong></a>
             </p>
             <p class="muted">
               {{ movesLabel(g.moves) }} · {{ g.totalTimeSeconds | duration }}
@@ -52,6 +67,7 @@ export class CompletedDetailComponent implements OnInit {
   readonly game = signal<CompletedGameDetail | null>(null);
 
   protected readonly movesLabel = movesLabel;
+  protected readonly wikiUrl = wikiUrl;
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
