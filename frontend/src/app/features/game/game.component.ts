@@ -5,6 +5,7 @@ import { GameState } from '../../core/models/game.model';
 import { WikiArticleComponent } from './wiki-article/wiki-article.component';
 import { GamePathComponent } from '../../shared/game-path/game-path.component';
 import { movesLabel } from '../../shared/duration/duration.pipe';
+import { wikiUrl } from '../../shared/wiki-link/wiki-link';
 
 @Component({
   selector: 'app-game',
@@ -19,9 +20,23 @@ import { movesLabel } from '../../shared/duration/duration.pipe';
 
       <header class="topbar">
         <span class="route-labels">
-          <strong>{{ game()?.startPageTitle }}</strong>
-          →
-          <strong>{{ game()?.targetPageTitle }}</strong>
+          @if (game(); as g) {
+            <a
+              class="wiki-link"
+              [href]="wikiUrl(g.startPageTitle)"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Apri su Wikipedia"
+            ><strong>{{ g.startPageTitle }}</strong></a>
+            →
+            <a
+              class="wiki-link"
+              [href]="wikiUrl(g.targetPageTitle)"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Apri su Wikipedia"
+            ><strong>{{ g.targetPageTitle }}</strong></a>
+          }
         </span>
         <div class="topbar-actions">
           <span class="timer mono">{{ elapsedLabel() }}</span>
@@ -38,8 +53,23 @@ import { movesLabel } from '../../shared/duration/duration.pipe';
           <div class="completed-card">
             <h1>Traguardo raggiunto</h1>
             <p class="muted">
-              Da <strong>{{ game()!.startPageTitle }}</strong> a
-              <strong>{{ game()!.targetPageTitle }}</strong> in
+              Da
+              <a
+                class="wiki-link"
+                [href]="wikiUrl(game()!.startPageTitle)"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Apri su Wikipedia"
+              ><strong>{{ game()!.startPageTitle }}</strong></a>
+              a
+              <a
+                class="wiki-link"
+                [href]="wikiUrl(game()!.targetPageTitle)"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Apri su Wikipedia"
+              ><strong>{{ game()!.targetPageTitle }}</strong></a>
+              in
               <strong>{{ movesLabel(game()!.moves) }}</strong> e
               <strong>{{ elapsedLabel() }}</strong>.
             </p>
@@ -77,7 +107,8 @@ export class GameComponent implements OnInit, OnDestroy {
   private baselineWallClockMs = 0;
 
   protected readonly movesLabel = movesLabel;
-  
+  protected readonly wikiUrl = wikiUrl;
+
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.gameService.getGame(id).subscribe((game) => {
@@ -101,9 +132,6 @@ export class GameComponent implements OnInit, OnDestroy {
       next: (updated) => {
         this.applyGameState(updated);
         this.isNavigating.set(false);
-        // New page, new scroll: without this the article keeps
-        // whatever scroll height the player left the previous page
-        // at, instead of opening at the top like a real navigation.
         window.scrollTo({ top: 0 });
       },
       error: () => {
@@ -120,10 +148,6 @@ export class GameComponent implements OnInit, OnDestroy {
     this.gameService.abandonGame(game.gameId).subscribe(() => this.goHome());
   }
 
-  // "Esci": if the game is still in progress, freeze the server-side
-  // clock first so idle time away doesn't count, then navigate away
-  // regardless of whether that call succeeds — a network hiccup here
-  // shouldn't trap the player on the game page.
   goHome(): void {
     const game = this.game();
     if (game?.status === 'IN_PROGRESS') {

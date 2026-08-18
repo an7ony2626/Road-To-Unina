@@ -10,13 +10,10 @@ const TOKEN_KEY = 'wikirace_token';
 export class AuthService {
   private readonly http = inject(HttpClient);
 
-  // Single source of truth for the current token. Everything else
-  // (isAuthenticated, username) derives from it — no separate state
-  // to keep in sync.
-  private readonly tokenSignal = signal<string | null>(localStorage.getItem(TOKEN_KEY));
+  private readonly tokenSignal = signal<string | null>(this.readValidToken());
 
   readonly isAuthenticated = computed(() => this.tokenSignal() !== null);
-  readonly username = computed(() => this.decodeUsername(this.tokenSignal()));
+  readonly username = computed(() => this.decodeClaims(this.tokenSignal())?.sub ?? null);
 
   login(request: LoginRequest): Observable<AuthResponse> {
     return this.http
@@ -44,16 +41,25 @@ export class AuthService {
     this.tokenSignal.set(token);
   }
 
-  // JWT payload is not secret (it's already visible to anyone with the
-  // token); decoding client-side just to display the username avoids
-  // a round trip to a "whoami" endpoint that doesn't exist yet.
-  private decodeUsername(token: string | null): string | null {
+  private readValidToken(): string | null {
+    const stored = localStorage.getItem(TOKEN_KEY);
+    if (!stored) return null;
+
+    const claims = this.decodeClaims(stored);
+    if (!claims?.exp || claims.exp * 1000 <= Date.now()) {
+      localStorage.removeItem(TOKEN_KEY);
+      return null;
+    }
+
+    return stored;
+  }
+
+  private decodeClaims(token: string | null): { sub?: string; exp?: number } | null {
     if (!token) return null;
     try {
       const payload = token.split('.')[1];
       const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
-      const claims = JSON.parse(json) as { sub?: string };
-      return claims.sub ?? null;
+      return JSON.parse(json) as { sub?: string; exp?: number };
     } catch {
       return null;
     }
