@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { catchError, of, timeout } from 'rxjs';
+import { catchError, of } from 'rxjs';
 import { GameService } from '../../core/services/game.service';
 import { CompletedGameSummary, GameFilterMode } from '../../core/models/game.model';
 import { DurationPipe } from '../../shared/duration/duration.pipe';
 import { wikiUrl } from '../../shared/wiki-link/wiki-link';
+import { withColdStartRetry } from '../../shared/http/cold-start-retry';
 
-const REQUEST_TIMEOUT_MS = 10_000;
 const PAGE_SIZE = 10;
 
 const FILTERS: { mode: GameFilterMode; label: string }[] = [
@@ -43,7 +43,7 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
         </div>
 
         @if (isLoading()) {
-          <p class="muted">Caricamento…</p>
+          <p class="muted">{{ isWaking() ? 'Il server si sta risvegliando, un attimo…' : 'Caricamento…' }}</p>
         } @else if (loadFailed()) {
           <p class="error">Impossibile caricare le partite concluse.</p>
         } @else if (games().length === 0) {
@@ -106,6 +106,7 @@ export class CompletedListComponent implements OnInit {
   readonly isLoading = signal(true);
   readonly isLoadingMore = signal(false);
   readonly loadFailed = signal(false);
+  readonly isWaking = signal(false);
   readonly games = signal<CompletedGameSummary[]>([]);
   readonly hasMore = signal(false);
   readonly mode = signal<GameFilterMode>('ALL');
@@ -134,13 +135,12 @@ export class CompletedListComponent implements OnInit {
   private loadPage(page: number, append: boolean): void {
     (append ? this.isLoadingMore : this.isLoading).set(true);
     this.loadFailed.set(false);
+    this.isWaking.set(false);
 
-    this.gameService
-      .getCompletedGames(this.mode(), page, PAGE_SIZE)
-      .pipe(
-        timeout(REQUEST_TIMEOUT_MS),
-        catchError(() => of('error' as const)),
-      )
+    withColdStartRetry(this.gameService.getCompletedGames(this.mode(), page, PAGE_SIZE), () =>
+      this.isWaking.set(true),
+    )
+      .pipe(catchError(() => of('error' as const)))
       .subscribe((result) => {
         this.isLoading.set(false);
         this.isLoadingMore.set(false);

@@ -1,15 +1,15 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { catchError, of, timeout } from 'rxjs';
+import { catchError, of } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { GameService } from '../../core/services/game.service';
 import { CompletedGameSummary, GameFilterMode, GameState, LeaderboardEntry } from '../../core/models/game.model';
 import { WikiSearchResult } from '../../core/models/wiki-search.model';
 import { PageSearchComponent } from '../../shared/page-search/page-search.component';
 import { AnimatedBackgroundComponent } from '../../shared/animated-background/animated-background.component';
+import { withColdStartRetry } from '../../shared/http/cold-start-retry';
 
-const REQUEST_TIMEOUT_MS = 10_000;
 const RECENT_COMPLETED_SIZE = 5;
 
 const FILTERS: { mode: GameFilterMode; label: string }[] = [
@@ -59,7 +59,7 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
             </svg>
 
             @if (isLoadingCurrent()) {
-              <p class="muted">Verifica partita in corso…</p>
+              <p class="muted">{{ isWakingCurrent() ? 'Il server si sta risvegliando, un attimo…' : 'Verifica partita in corso…' }}</p>
             } @else if (currentLoadFailed()) {
               <p class="error">Impossibile verificare la partita in corso.</p>
               <button type="button" class="cta" (click)="loadCurrentGame()">Riprova</button>
@@ -110,7 +110,7 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
             }
           </div>
           @if (isLoadingLeaderboard()) {
-            <p class="muted">Caricamento…</p>
+            <p class="muted">{{ isWakingLeaderboard() ? 'Il server si sta risvegliando, un attimo…' : 'Caricamento…' }}</p>
           } @else if (leaderboardLoadFailed()) {
             <p class="error">Impossibile caricare la classifica.</p>
           } @else if (leaderboard().length === 0) {
@@ -146,7 +146,7 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
             }
           </div>
           @if (isLoadingCompleted()) {
-            <p class="muted">Caricamento…</p>
+            <p class="muted">{{ isWakingCompleted() ? 'Il server si sta risvegliando, un attimo…' : 'Caricamento…' }}</p>
           } @else if (completedLoadFailed()) {
             <p class="error">Impossibile caricare le partite concluse.</p>
           } @else if (recentCompleted().length === 0) {
@@ -184,6 +184,10 @@ export class HomeComponent implements OnInit {
   readonly leaderboardLoadFailed = signal(false);
   readonly completedLoadFailed = signal(false);
 
+  readonly isWakingCurrent = signal(false);
+  readonly isWakingLeaderboard = signal(false);
+  readonly isWakingCompleted = signal(false);
+
   readonly isStarting = signal(false);
   readonly startErrorMessage = signal<string | null>(null);
   readonly currentGame = signal<GameState | null>(null);
@@ -215,13 +219,10 @@ export class HomeComponent implements OnInit {
   loadCurrentGame(): void {
     this.isLoadingCurrent.set(true);
     this.currentLoadFailed.set(false);
+    this.isWakingCurrent.set(false);
 
-    this.gameService
-      .getCurrentGame()
-      .pipe(
-        timeout(REQUEST_TIMEOUT_MS),
-        catchError(() => of('error' as const)),
-      )
+    withColdStartRetry(this.gameService.getCurrentGame(), () => this.isWakingCurrent.set(true))
+      .pipe(catchError(() => of('error' as const)))
       .subscribe((result) => {
         this.isLoadingCurrent.set(false);
 
@@ -247,13 +248,12 @@ export class HomeComponent implements OnInit {
   private loadLeaderboard(): void {
     this.isLoadingLeaderboard.set(true);
     this.leaderboardLoadFailed.set(false);
+    this.isWakingLeaderboard.set(false);
 
-    this.gameService
-      .getLeaderboard(this.leaderboardMode())
-      .pipe(
-        timeout(REQUEST_TIMEOUT_MS),
-        catchError(() => of('error' as const)),
-      )
+    withColdStartRetry(this.gameService.getLeaderboard(this.leaderboardMode()), () =>
+      this.isWakingLeaderboard.set(true),
+    )
+      .pipe(catchError(() => of('error' as const)))
       .subscribe((result) => {
         this.isLoadingLeaderboard.set(false);
 
@@ -275,13 +275,13 @@ export class HomeComponent implements OnInit {
   private loadCompleted(): void {
     this.isLoadingCompleted.set(true);
     this.completedLoadFailed.set(false);
+    this.isWakingCompleted.set(false);
 
-    this.gameService
-      .getCompletedGames(this.completedMode(), 0, RECENT_COMPLETED_SIZE)
-      .pipe(
-        timeout(REQUEST_TIMEOUT_MS),
-        catchError(() => of('error' as const)),
-      )
+    withColdStartRetry(
+      this.gameService.getCompletedGames(this.completedMode(), 0, RECENT_COMPLETED_SIZE),
+      () => this.isWakingCompleted.set(true),
+    )
+      .pipe(catchError(() => of('error' as const)))
       .subscribe((result) => {
         this.isLoadingCompleted.set(false);
 

@@ -1,14 +1,13 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { catchError, of, timeout } from 'rxjs';
+import { catchError, of } from 'rxjs';
 import { GameService } from '../../core/services/game.service';
 import { CompletedGameDetail } from '../../core/models/game.model';
 import { GamePathComponent } from '../../shared/game-path/game-path.component';
 import { DurationPipe } from '../../shared/duration/duration.pipe';
 import { movesLabel } from '../../shared/duration/duration.pipe';
 import { wikiUrl } from '../../shared/wiki-link/wiki-link';
-
-const REQUEST_TIMEOUT_MS = 10_000;
+import { withColdStartRetry } from '../../shared/http/cold-start-retry';
 
 @Component({
   selector: 'app-completed-detail',
@@ -23,7 +22,7 @@ const REQUEST_TIMEOUT_MS = 10_000;
 
       <main class="content">
         @if (isLoading()) {
-          <p class="muted">Caricamento…</p>
+          <p class="muted">{{ isWaking() ? 'Il server si sta risvegliando, un attimo…' : 'Caricamento…' }}</p>
         } @else if (loadFailed()) {
           <p class="error">Impossibile caricare questa partita.</p>
         } @else if (game(); as g) {
@@ -64,6 +63,7 @@ export class CompletedDetailComponent implements OnInit {
 
   readonly isLoading = signal(true);
   readonly loadFailed = signal(false);
+  readonly isWaking = signal(false);
   readonly game = signal<CompletedGameDetail | null>(null);
 
   protected readonly movesLabel = movesLabel;
@@ -72,12 +72,8 @@ export class CompletedDetailComponent implements OnInit {
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
 
-    this.gameService
-      .getCompletedGameDetail(id)
-      .pipe(
-        timeout(REQUEST_TIMEOUT_MS),
-        catchError(() => of('error' as const)),
-      )
+    withColdStartRetry(this.gameService.getCompletedGameDetail(id), () => this.isWaking.set(true))
+      .pipe(catchError(() => of('error' as const)))
       .subscribe((result) => {
         this.isLoading.set(false);
 
