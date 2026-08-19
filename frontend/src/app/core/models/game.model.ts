@@ -31,6 +31,17 @@ export interface LeaderboardEntry {
   bestMoves: number | null;
 }
 
+// Matches LeaderboardSortMode.java.
+export type LeaderboardSortMode = 'BEST_MOVES' | 'GAMES_PLAYED';
+
+export interface LeaderboardPage {
+  entries: LeaderboardEntry[];
+  hasMore: boolean;
+  // 1-based, null if nobody is logged in or the logged-in user has no
+  // completed game matching the current filter.
+  currentUserRank: number | null;
+}
+
 export interface CompletedGameSummary {
   gameId: number;
   username: string;

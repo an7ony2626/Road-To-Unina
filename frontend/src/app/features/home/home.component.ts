@@ -1,22 +1,37 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { catchError, of } from 'rxjs';
+import { catchError, of, timeout } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { GameService } from '../../core/services/game.service';
-import { CompletedGameSummary, GameFilterMode, GameState, LeaderboardEntry } from '../../core/models/game.model';
+import {
+  CompletedGameSummary,
+  GameFilterMode,
+  GameState,
+  LeaderboardEntry,
+  LeaderboardSortMode,
+} from '../../core/models/game.model';
 import { WikiSearchResult } from '../../core/models/wiki-search.model';
 import { PageSearchComponent } from '../../shared/page-search/page-search.component';
 import { AnimatedBackgroundComponent } from '../../shared/animated-background/animated-background.component';
 import { withColdStartRetry } from '../../shared/http/cold-start-retry';
 
+// Both the leaderboard and completed-games panels on the home page show
+// a short preview; the full lists live on their own "vedi tutte" pages.
+const HOME_PREVIEW_SIZE = 5;
 const RECENT_COMPLETED_SIZE = 5;
+const REQUEST_TIMEOUT_MS = 10000;
 
 const FILTERS: { mode: GameFilterMode; label: string }[] = [
   { mode: 'ALL', label: 'Tutte' },
   { mode: 'RANDOM', label: 'Casuali' },
   { mode: 'CUSTOM', label: 'Personalizzate' },
   { mode: 'UNINA', label: 'Road to Unina' },
+];
+
+const SORT_OPTIONS: { sort: LeaderboardSortMode; label: string }[] = [
+  { sort: 'BEST_MOVES', label: 'Per mosse' },
+  { sort: 'GAMES_PLAYED', label: 'Per partite' },
 ];
 
 @Component({
@@ -44,7 +59,9 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
         <section class="status-card">
           @if (!auth.isAuthenticated()) {
             <h1>Benvenuto su WikiRace</h1>
-            <p class="muted">Accedi per avviare una sfida. Puoi comunque esplorare classifica e partite concluse qui sotto.</p>
+            <p class="muted">
+              Accedi per avviare una sfida. Puoi comunque esplorare classifica e partite concluse qui sotto.
+            </p>
           } @else {
             <svg class="route" viewBox="0 0 320 40" aria-hidden="true">
               <line
@@ -74,7 +91,9 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
               <button type="button" class="cta" (click)="resumeGame()">Riprendi la sfida</button>
             } @else {
               <h1>Pronto per una sfida?</h1>
-              <p class="muted">Lascia scegliere il caso, oppure imposta tu le pagine di partenza e arrivo.</p>
+              <p class="muted">
+                Lascia scegliere il caso, oppure imposta tu le pagine di partenza e arrivo.
+              </p>
 
               <div class="page-picker">
                 <app-page-search label="Pagina di partenza" (pageSelected)="onStartPageSelected($event)" />
@@ -95,16 +114,46 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
 
         <section class="panel">
           <div class="panel-header">
-            <h2>Classifica</h2>
+            <div class="panel-title">
+              <h2>Classifica</h2>
+
+              <div class="toggle-switch">
+                <div 
+                  class="toggle-indicator" 
+                  [class.right]="leaderboardSort() === 'GAMES_PLAYED'">
+                </div>
+                <button 
+                  type="button" 
+                  class="toggle-btn" 
+                  [class.active]="leaderboardSort() === 'BEST_MOVES'"
+                  (click)="selectLeaderboardSort('BEST_MOVES')">
+                  Per mosse
+                </button>
+                <button 
+                  type="button" 
+                  class="toggle-btn" 
+                  [class.active]="leaderboardSort() === 'GAMES_PLAYED'"
+                  (click)="selectLeaderboardSort('GAMES_PLAYED')">
+                  Per partite
+                </button>
+              </div>
+
+              @if (leaderboardRank(); as rank) {
+                <span class="rank-badge">{{ auth.username() }}: {{ rank }}°</span>
+              }
+            </div>
+
+            <a routerLink="/leaderboard" class="link-button">Vedi tutte →</a>
           </div>
+
+          <!-- Filtri tipologia di partita -->
           <div class="filter-bar">
             @for (filter of filters; track filter.mode) {
               <button
                 type="button"
                 class="filter-button"
                 [class.active]="leaderboardMode() === filter.mode"
-                (click)="selectLeaderboardMode(filter.mode)"
-              >
+                (click)="selectLeaderboardMode(filter.mode)">
                 {{ filter.label }}
               </button>
             }
@@ -128,6 +177,7 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
           }
         </section>
 
+        <!-- Sezione Partite concluse -->
         <section class="panel">
           <div class="panel-header">
             <h2>Partite concluse</h2>
@@ -139,8 +189,7 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
                 type="button"
                 class="filter-button"
                 [class.active]="completedMode() === filter.mode"
-                (click)="selectCompletedMode(filter.mode)"
-              >
+                (click)="selectCompletedMode(filter.mode)">
                 {{ filter.label }}
               </button>
             }
@@ -175,6 +224,7 @@ export class HomeComponent implements OnInit {
   private readonly router = inject(Router);
 
   protected readonly filters = FILTERS;
+  protected readonly sortOptions = SORT_OPTIONS;
 
   readonly isLoadingCurrent = signal(true);
   readonly isLoadingLeaderboard = signal(true);
@@ -193,6 +243,8 @@ export class HomeComponent implements OnInit {
   readonly currentGame = signal<GameState | null>(null);
   readonly leaderboard = signal<LeaderboardEntry[]>([]);
   readonly leaderboardMode = signal<GameFilterMode>('ALL');
+  readonly leaderboardSort = signal<LeaderboardSortMode>('BEST_MOVES');
+  readonly leaderboardRank = signal<number | null>(null);
   readonly recentCompleted = signal<CompletedGameSummary[]>([]);
   readonly completedMode = signal<GameFilterMode>('ALL');
 
@@ -245,9 +297,22 @@ export class HomeComponent implements OnInit {
     this.loadLeaderboard();
   }
 
+  selectLeaderboardSort(sort: LeaderboardSortMode): void {
+    if (this.leaderboardSort() === sort) return;
+    this.leaderboardSort.set(sort);
+    this.loadLeaderboard();
+  }
+
   private loadLeaderboard(): void {
     this.isLoadingLeaderboard.set(true);
     this.leaderboardLoadFailed.set(false);
+
+    this.gameService
+      .getLeaderboard(this.leaderboardMode(), this.leaderboardSort(), 0, HOME_PREVIEW_SIZE)
+      .pipe(
+        timeout(REQUEST_TIMEOUT_MS),
+        catchError(() => of('error' as const)),
+      )
     this.isWakingLeaderboard.set(false);
 
     withColdStartRetry(this.gameService.getLeaderboard(this.leaderboardMode()), () =>
@@ -262,7 +327,8 @@ export class HomeComponent implements OnInit {
           return;
         }
 
-        this.leaderboard.set(result.slice(0, 5));
+        this.leaderboard.set(result.entries);
+        this.leaderboardRank.set(result.currentUserRank);
       });
   }
 
@@ -275,6 +341,13 @@ export class HomeComponent implements OnInit {
   private loadCompleted(): void {
     this.isLoadingCompleted.set(true);
     this.completedLoadFailed.set(false);
+
+    this.gameService
+      .getCompletedGames(this.completedMode(), 0, HOME_PREVIEW_SIZE)
+      .pipe(
+        timeout(REQUEST_TIMEOUT_MS),
+        catchError(() => of('error' as const)),
+      )
     this.isWakingCompleted.set(false);
 
     withColdStartRetry(

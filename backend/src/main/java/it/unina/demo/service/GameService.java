@@ -2,12 +2,14 @@ package it.unina.demo.service;
 
 import it.unina.demo.dto.request.CreateGameRequest;
 import it.unina.demo.dto.request.FollowLinkRequest;
+import it.unina.demo.dto.request.LeaderboardSortMode;
 import it.unina.demo.dto.response.CompletedGameDetailResponse;
 import it.unina.demo.dto.response.CompletedGameSummaryResponse;
 import it.unina.demo.dto.response.CompletedGamesPageResponse;
 import it.unina.demo.dto.response.GameStateResponse;
 import it.unina.demo.dto.response.GameStepResponse;
 import it.unina.demo.dto.response.LeaderboardEntryResponse;
+import it.unina.demo.dto.response.LeaderboardPageResponse;
 import it.unina.demo.entity.Game;
 import it.unina.demo.entity.GameStatus;
 import it.unina.demo.entity.GameStep;
@@ -216,8 +218,14 @@ public class GameService {
         return buildGameState(game);
     }
 
-    public List<LeaderboardEntryResponse> getLeaderboard(Boolean isRandom, String requiredTargetTitle) {
-        return gameRepo.findLeaderboard(GameStatus.COMPLETED, isRandom, requiredTargetTitle).stream()
+    public LeaderboardPageResponse getLeaderboard(
+            Boolean isRandom, String requiredTargetTitle, LeaderboardSortMode sortMode, int page, int size
+    ) {
+        List<Object[]> rows = sortMode == LeaderboardSortMode.GAMES_PLAYED
+                ? gameRepo.findLeaderboardByGamesPlayed(GameStatus.COMPLETED, isRandom, requiredTargetTitle)
+                : gameRepo.findLeaderboardByBestMoves(GameStatus.COMPLETED, isRandom, requiredTargetTitle);
+
+        List<LeaderboardEntryResponse> entries = rows.stream()
                 .map(row -> new LeaderboardEntryResponse(
                         (Long) row[0],
                         (String) row[1],
@@ -225,6 +233,24 @@ public class GameService {
                         toMoves(((Number) row[3]).intValue())
                 ))
                 .toList();
+
+        int from = Math.min(page * size, entries.size());
+        int to = Math.min(from + size, entries.size());
+
+        return new LeaderboardPageResponse(entries.subList(from, to), to < entries.size(), findRank(entries));
+    }
+
+    // 1-based position of the logged-in user within the full (unpaged)
+    // ranking, or null if nobody is logged in or they have no completed
+    // game matching the current filter.
+    private Integer findRank(List<LeaderboardEntryResponse> orderedEntries) {
+        String username = securityUtil.getCurrentUsernameOrNull();
+        if (username == null) return null;
+
+        for (int i = 0; i < orderedEntries.size(); i++) {
+            if (orderedEntries.get(i).username().equals(username)) return i + 1;
+        }
+        return null;
     }
 
     private User getCurrentUser() {
