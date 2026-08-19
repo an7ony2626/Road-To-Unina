@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { catchError, of, timeout } from 'rxjs';
+import { catchError, of } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { GameService } from '../../core/services/game.service';
 import {
@@ -16,11 +16,9 @@ import { PageSearchComponent } from '../../shared/page-search/page-search.compon
 import { AnimatedBackgroundComponent } from '../../shared/animated-background/animated-background.component';
 import { withColdStartRetry } from '../../shared/http/cold-start-retry';
 
-// Both the leaderboard and completed-games panels on the home page show
-// a short preview; the full lists live on their own "vedi tutte" pages.
+
 const HOME_PREVIEW_SIZE = 5;
 const RECENT_COMPLETED_SIZE = 5;
-const REQUEST_TIMEOUT_MS = 10000;
 
 const FILTERS: { mode: GameFilterMode; label: string }[] = [
   { mode: 'ALL', label: 'Tutte' },
@@ -306,17 +304,11 @@ export class HomeComponent implements OnInit {
   private loadLeaderboard(): void {
     this.isLoadingLeaderboard.set(true);
     this.leaderboardLoadFailed.set(false);
-
-    this.gameService
-      .getLeaderboard(this.leaderboardMode(), this.leaderboardSort(), 0, HOME_PREVIEW_SIZE)
-      .pipe(
-        timeout(REQUEST_TIMEOUT_MS),
-        catchError(() => of('error' as const)),
-      )
     this.isWakingLeaderboard.set(false);
 
-    withColdStartRetry(this.gameService.getLeaderboard(this.leaderboardMode()), () =>
-      this.isWakingLeaderboard.set(true),
+    withColdStartRetry(
+      this.gameService.getLeaderboard(this.leaderboardMode(), this.leaderboardSort(), 0, HOME_PREVIEW_SIZE),
+      () => this.isWakingLeaderboard.set(true),
     )
       .pipe(catchError(() => of('error' as const)))
       .subscribe((result) => {
@@ -341,13 +333,6 @@ export class HomeComponent implements OnInit {
   private loadCompleted(): void {
     this.isLoadingCompleted.set(true);
     this.completedLoadFailed.set(false);
-
-    this.gameService
-      .getCompletedGames(this.completedMode(), 0, HOME_PREVIEW_SIZE)
-      .pipe(
-        timeout(REQUEST_TIMEOUT_MS),
-        catchError(() => of('error' as const)),
-      )
     this.isWakingCompleted.set(false);
 
     withColdStartRetry(
