@@ -22,12 +22,14 @@ export class GameService {
     targetPageTitle?: string,
     startWasRandom = false,
     targetWasRandom = false,
+    confirmReplaceExisting = false,
   ): Observable<GameState> {
     return this.http.post<GameState>('/api/games', {
       startPageTitle,
       targetPageTitle,
       startWasRandom,
       targetWasRandom,
+      confirmReplaceExisting,
     });
   }
 

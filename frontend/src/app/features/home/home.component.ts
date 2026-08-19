@@ -6,6 +6,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { GameService } from '../../core/services/game.service';
 import {
   CompletedGameSummary,
+  DuplicateGameError,
   GameFilterMode,
   GameState,
   LeaderboardEntry,
@@ -365,7 +366,7 @@ export class HomeComponent implements OnInit {
     this.targetWasRandom.set(event?.wasRandom ?? false);
   }
 
-  startGame(): void {
+  startGame(confirmReplaceExisting = false): void {
     if (this.isStarting()) return;
     this.isStarting.set(true);
     this.startErrorMessage.set(null);
@@ -376,16 +377,41 @@ export class HomeComponent implements OnInit {
         this.targetPageChoice()?.title,
         this.startWasRandom(),
         this.targetWasRandom(),
+        confirmReplaceExisting,
       )
       .subscribe({
         next: (game) => this.router.navigate(['/game', game.gameId]),
         error: (err: HttpErrorResponse) => {
           this.isStarting.set(false);
+
+          if (err.status === 409 && this.isDuplicateGameError(err.error)) {
+            // Distinct from a plain-string 409 (e.g. "game already in
+            // progress"): this shape means the player already completed
+            // this exact pair. Ask before deleting that earlier record.
+            const replace = confirm(
+              `${err.error.message} (${err.error.existingMoves} mosse). Continuando, quella partita verrà eliminata. Vuoi procedere?`,
+            );
+            if (replace) {
+              this.startGame(true);
+            }
+            return;
+          }
+
           this.startErrorMessage.set(
             typeof err.error === 'string' ? err.error : 'Impossibile creare la partita, riprova.',
           );
         },
       });
+  }
+
+  private isDuplicateGameError(error: unknown): error is DuplicateGameError {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'existingGameId' in error &&
+      'existingMoves' in error &&
+      'message' in error
+    );
   }
 
   resumeGame(): void {

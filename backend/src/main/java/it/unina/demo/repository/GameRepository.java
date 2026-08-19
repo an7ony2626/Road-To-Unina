@@ -15,6 +15,13 @@ public interface GameRepository extends JpaRepository<Game, Long> {
 
     List<Game> findByUserIdAndStatus(Long userId, GameStatus status);
 
+    // Used to detect when a player is about to replay a start->target
+    // pair they already completed, so GameService can warn them via a
+    // 409 before overwriting that earlier attempt.
+    Optional<Game> findByUserIdAndStatusAndStartPageTitleIgnoreCaseAndTargetPageTitleIgnoreCase(
+            Long userId, GameStatus status, String startPageTitle, String targetPageTitle
+    );
+
     // The explicit CAST(... AS string) is required: without it, when
     // requiredTargetTitle is null, Hibernate/pgjdbc can't infer its
     // type and sends it to Postgres as bytea, which LOWER() rejects.
