@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import it.unina.demo.dto.response.DuplicateGameResponse;
 import it.unina.demo.service.wiki.WikiPageNotFoundException;
 
 @ControllerAdvice
@@ -51,13 +52,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     }
 
+    @ExceptionHandler(DuplicateGameException.class)
+    public ResponseEntity<DuplicateGameResponse> handleDuplicateGame(DuplicateGameException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new DuplicateGameResponse(e.getMessage(), e.getExistingGameId(), e.getExistingMoves()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleServerError(Exception e) {
         log.error("Unhandled exception", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error");
     }
 
-    // GlobalExceptionHandler.java — aggiungi
     @ExceptionHandler(WikiPageNotFoundException.class)
     public ResponseEntity<String> handleWikiPageNotFound(WikiPageNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());

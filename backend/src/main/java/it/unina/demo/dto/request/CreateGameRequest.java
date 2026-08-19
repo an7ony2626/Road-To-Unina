@@ -4,6 +4,7 @@ public record CreateGameRequest(
         String startPageTitle,
         String targetPageTitle,
         Boolean startWasRandom,
-        Boolean targetWasRandom
+        Boolean targetWasRandom,
+        Boolean confirmReplaceExisting
 ) {
 }

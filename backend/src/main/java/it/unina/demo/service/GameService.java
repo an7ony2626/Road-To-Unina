@@ -10,6 +10,7 @@ import it.unina.demo.dto.response.GameStateResponse;
 import it.unina.demo.dto.response.GameStepResponse;
 import it.unina.demo.dto.response.LeaderboardEntryResponse;
 import it.unina.demo.dto.response.LeaderboardPageResponse;
+import it.unina.demo.exception.DuplicateGameException;
 import it.unina.demo.entity.Game;
 import it.unina.demo.entity.GameStatus;
 import it.unina.demo.entity.GameStep;
@@ -74,6 +75,8 @@ public class GameService {
         if (startTitle.equals(targetTitle))
             throw new IllegalStateException("Could not pick two distinct pages, try again");
 
+        handleDuplicateCompletedGame(user, startTitle, targetTitle, Boolean.TRUE.equals(request.confirmReplaceExisting()));
+
         PageContent startPage = wikiContentService.getPageContent(startTitle);
 
         Game game = Game.builder()
@@ -100,6 +103,24 @@ public class GameService {
         gameStepRepo.save(firstStep);
 
         return buildGameState(game, startPage, List.of(firstStep));
+    }
+
+    // Checks whether the player already has a COMPLETED game with this
+    // exact start->target pair (case-insensitive, since Wikipedia
+    // titles are already canonicalized upstream). First attempt: fail
+    // fast with a 409 so the frontend can warn the player before doing
+    // anything destructive. Once they confirm, the earlier attempt is
+    // deleted (cascading to its steps at the DB level) to make room for
+    // the new one — replays are allowed, but only one record per pair.
+    private void handleDuplicateCompletedGame(User user, String startTitle, String targetTitle, boolean confirmReplace) {
+        gameRepo.findByUserIdAndStatusAndStartPageTitleIgnoreCaseAndTargetPageTitleIgnoreCase(
+                user.getId(), GameStatus.COMPLETED, startTitle, targetTitle
+        ).ifPresent(existingGame -> {
+            if (!confirmReplace)
+                throw new DuplicateGameException(existingGame.getId(), toMoves(existingGame.getNumSteps()));
+
+            gameRepo.delete(existingGame);
+        });
     }
 
     private String blankToNull(String value) {
