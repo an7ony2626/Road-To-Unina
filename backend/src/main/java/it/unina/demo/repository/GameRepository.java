@@ -40,7 +40,6 @@ public interface GameRepository extends JpaRepository<Game, Long> {
             """)
     Optional<Game> findByIdWithUser(@Param("id") Long id);
 
-    // Same CAST fix as above, same reason.
     @Query("""
             SELECT g.user.id, g.user.username, COUNT(g), MIN(g.numSteps)
             FROM Game g
@@ -48,9 +47,24 @@ public interface GameRepository extends JpaRepository<Game, Long> {
             AND (:isRandom IS NULL OR g.isRandomChallenge = :isRandom)
             AND (:requiredTargetTitle IS NULL OR LOWER(g.targetPageTitle) = LOWER(CAST(:requiredTargetTitle AS string)))
             GROUP BY g.user.id, g.user.username
-            ORDER BY MIN(g.numSteps) ASC
+            ORDER BY MIN(g.numSteps) ASC, COUNT(g) DESC
             """)
-    List<Object[]> findLeaderboard(
+    List<Object[]> findLeaderboardByBestMoves(
+            @Param("status") GameStatus status,
+            @Param("isRandom") Boolean isRandom,
+            @Param("requiredTargetTitle") String requiredTargetTitle
+    );
+
+    @Query("""
+            SELECT g.user.id, g.user.username, COUNT(g), MIN(g.numSteps)
+            FROM Game g
+            WHERE g.status = :status
+            AND (:isRandom IS NULL OR g.isRandomChallenge = :isRandom)
+            AND (:requiredTargetTitle IS NULL OR LOWER(g.targetPageTitle) = LOWER(CAST(:requiredTargetTitle AS string)))
+            GROUP BY g.user.id, g.user.username
+            ORDER BY COUNT(g) DESC, MIN(g.numSteps) ASC
+            """)
+    List<Object[]> findLeaderboardByGamesPlayed(
             @Param("status") GameStatus status,
             @Param("isRandom") Boolean isRandom,
             @Param("requiredTargetTitle") String requiredTargetTitle

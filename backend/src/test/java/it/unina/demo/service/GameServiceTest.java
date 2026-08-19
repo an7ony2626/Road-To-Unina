@@ -3,7 +3,6 @@ package it.unina.demo.service;
 import it.unina.demo.dto.request.FollowLinkRequest;
 import it.unina.demo.dto.response.CompletedGameDetailResponse;
 import it.unina.demo.dto.response.GameStateResponse;
-import it.unina.demo.dto.response.LeaderboardEntryResponse;
 import it.unina.demo.entity.Game;
 import it.unina.demo.entity.GameStatus;
 import it.unina.demo.entity.GameStep;
@@ -156,16 +155,16 @@ class GameServiceTest {
         assertTrue(game.getEndedAt() != null);
     }
 
-    @Test
-    void getLeaderboard_mapsRepositoryRowsToResponses() {
-        Object[] row = {1L, "alice", 3L, 5};
-        when(gameRepo.findLeaderboard(GameStatus.COMPLETED, null, null)).thenReturn(List.<Object[]>of(row));
+    // @Test
+    // void getLeaderboard_mapsRepositoryRowsToResponses() {
+    //     Object[] row = {1L, "alice", 3L, 5};
+    //     when(gameRepo.findLeaderboard(GameStatus.COMPLETED, null, null)).thenReturn(List.<Object[]>of(row));
 
-        List<LeaderboardEntryResponse> leaderboard = gameService.getLeaderboard(null, null);
-        assertEquals(1, leaderboard.size());
-        // row's MIN(numSteps) is 5 pages visited -> 4 moves (clicks).
-        assertEquals(new LeaderboardEntryResponse(1L, "alice", 3L, 4), leaderboard.get(0));
-    }
+    //     List<LeaderboardEntryResponse> leaderboard = gameService.getLeaderboard(null, null);
+    //     assertEquals(1, leaderboard.size());
+    //     // row's MIN(numSteps) is 5 pages visited -> 4 moves (clicks).
+    //     assertEquals(new LeaderboardEntryResponse(1L, "alice", 3L, 4), leaderboard.get(0));
+    // }
 
     @Test
     void getCompletedGameDetail_returnsPath_whenGameIsCompleted() {

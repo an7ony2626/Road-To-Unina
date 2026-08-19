@@ -6,10 +6,12 @@ import {
   CompletedGamesPage,
   GameFilterMode,
   GameState,
-  LeaderboardEntry,
+  LeaderboardPage,
+  LeaderboardSortMode,
 } from '../models/game.model';
 
 const COMPLETED_PAGE_SIZE = 10;
+const LEADERBOARD_PAGE_SIZE = 10;
 
 @Injectable({ providedIn: 'root' })
 export class GameService {
@@ -54,8 +56,14 @@ export class GameService {
     return this.http.post<void>(`/api/games/${id}/pause`, {});
   }
 
-  getLeaderboard(mode: GameFilterMode = 'ALL'): Observable<LeaderboardEntry[]> {
-    return this.http.get<LeaderboardEntry[]>('/api/games/leaderboard', { params: { mode } });
+  getLeaderboard(
+    mode: GameFilterMode = 'ALL',
+    sortBy: LeaderboardSortMode = 'BEST_MOVES',
+    page = 0,
+    size = LEADERBOARD_PAGE_SIZE,
+  ): Observable<LeaderboardPage> {
+    const params = new HttpParams().set('mode', mode).set('sortBy', sortBy).set('page', page).set('size', size);
+    return this.http.get<LeaderboardPage>('/api/games/leaderboard', { params });
   }
 
   getCompletedGames(
