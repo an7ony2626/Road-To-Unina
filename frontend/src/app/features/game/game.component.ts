@@ -4,12 +4,13 @@ import { GameService } from '../../core/services/game.service';
 import { GameState } from '../../core/models/game.model';
 import { WikiArticleComponent } from './wiki-article/wiki-article.component';
 import { GamePathComponent } from '../../shared/game-path/game-path.component';
+import { WikiPageLinkComponent } from '../../shared/wiki-page-link/wiki-page-link.component';
 import { movesLabel } from '../../shared/duration/duration.pipe';
-import { wikiUrl } from '../../shared/wiki-link/wiki-link';
+import { withRequestTimeout } from '../../shared/rxjs/with-request-timeout';
 
 @Component({
   selector: 'app-game',
-  imports: [WikiArticleComponent, GamePathComponent],
+  imports: [WikiArticleComponent, GamePathComponent, WikiPageLinkComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: 'game.component.scss',
   template: `
@@ -21,21 +22,9 @@ import { wikiUrl } from '../../shared/wiki-link/wiki-link';
       <header class="topbar">
         <span class="route-labels">
           @if (game(); as g) {
-            <a
-              class="wiki-link"
-              [href]="wikiUrl(g.startPageTitle)"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Apri su Wikipedia"
-            ><strong>{{ g.startPageTitle }}</strong></a>
+            <app-wiki-page-link [title]="g.startPageTitle" [bold]="true" />
             →
-            <a
-              class="wiki-link"
-              [href]="wikiUrl(g.targetPageTitle)"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Apri su Wikipedia"
-            ><strong>{{ g.targetPageTitle }}</strong></a>
+            <app-wiki-page-link [title]="g.targetPageTitle" [bold]="true" />
           }
         </span>
         <div class="topbar-actions">
@@ -48,27 +37,18 @@ import { wikiUrl } from '../../shared/wiki-link/wiki-link';
 
       @if (isLoading()) {
         <p class="muted centered">Caricamento pagina…</p>
+      } @else if (loadFailed()) {
+        <p class="error centered">Impossibile caricare la partita.</p>
+        <button type="button" class="cta" (click)="loadGame()">Riprova</button>
       } @else if (isCompleted()) {
         <div class="completed-overlay">
           <div class="completed-card">
             <h1>Traguardo raggiunto</h1>
             <p class="muted">
               Da
-              <a
-                class="wiki-link"
-                [href]="wikiUrl(game()!.startPageTitle)"
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Apri su Wikipedia"
-              ><strong>{{ game()!.startPageTitle }}</strong></a>
+              <app-wiki-page-link [title]="game()!.startPageTitle" [bold]="true" />
               a
-              <a
-                class="wiki-link"
-                [href]="wikiUrl(game()!.targetPageTitle)"
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Apri su Wikipedia"
-              ><strong>{{ game()!.targetPageTitle }}</strong></a>
+              <app-wiki-page-link [title]="game()!.targetPageTitle" [bold]="true" />
               in
               <strong>{{ movesLabel(game()!.moves) }}</strong> e
               <strong>{{ elapsedLabel() }}</strong>.
@@ -97,6 +77,7 @@ export class GameComponent implements OnInit, OnDestroy {
 
   readonly game = signal<GameState | null>(null);
   readonly isLoading = signal(true);
+  readonly loadFailed = signal(false);
   readonly isNavigating = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly isCompleted = signal(false);
@@ -107,14 +88,29 @@ export class GameComponent implements OnInit, OnDestroy {
   private baselineWallClockMs = 0;
 
   protected readonly movesLabel = movesLabel;
-  protected readonly wikiUrl = wikiUrl;
 
   ngOnInit(): void {
+    this.loadGame();
+  }
+
+  loadGame(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));
-    this.gameService.getGame(id).subscribe((game) => {
-      this.applyGameState(game);
-      this.isLoading.set(false);
-    });
+    this.isLoading.set(true);
+    this.loadFailed.set(false);
+
+    this.gameService
+      .getGame(id)
+      .pipe(withRequestTimeout())
+      .subscribe((result) => {
+        this.isLoading.set(false);
+
+        if (result === 'error') {
+          this.loadFailed.set(true);
+          return;
+        }
+
+        this.applyGameState(result);
+      });
   }
 
   ngOnDestroy(): void {

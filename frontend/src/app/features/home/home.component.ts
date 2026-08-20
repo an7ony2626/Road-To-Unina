@@ -1,12 +1,12 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { catchError, of, timeout } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { GameService } from '../../core/services/game.service';
 import {
   CompletedGameSummary,
   DuplicateGameError,
+  GAME_FILTER_OPTIONS,
   GameFilterMode,
   GameState,
   LeaderboardEntry,
@@ -15,23 +15,11 @@ import {
 import { WikiSearchResult } from '../../core/models/wiki-search.model';
 import { PageSearchComponent } from '../../shared/page-search/page-search.component';
 import { AnimatedBackgroundComponent } from '../../shared/animated-background/animated-background.component';
+import { withRequestTimeout } from '../../shared/rxjs/with-request-timeout';
 
-const REQUEST_TIMEOUT_MS = 10_000;
 // Both the leaderboard and completed-games panels on the home page show
 // a short preview; the full lists live on their own "vedi tutte" pages.
 const HOME_PREVIEW_SIZE = 5;
-
-const FILTERS: { mode: GameFilterMode; label: string }[] = [
-  { mode: 'ALL', label: 'Tutte' },
-  { mode: 'RANDOM', label: 'Casuali' },
-  { mode: 'CUSTOM', label: 'Personalizzate' },
-  { mode: 'UNINA', label: 'Road to Unina' },
-];
-
-const SORT_OPTIONS: { sort: LeaderboardSortMode; label: string }[] = [
-  { sort: 'BEST_MOVES', label: 'Per mosse' },
-  { sort: 'GAMES_PLAYED', label: 'Per partite' },
-];
 
 @Component({
   selector: 'app-home',
@@ -226,8 +214,7 @@ export class HomeComponent implements OnInit {
   private readonly gameService = inject(GameService);
   private readonly router = inject(Router);
 
-  protected readonly filters = FILTERS;
-  protected readonly sortOptions = SORT_OPTIONS;
+  protected readonly filters = GAME_FILTER_OPTIONS;
 
   readonly isLoadingCurrent = signal(true);
   readonly isLoadingLeaderboard = signal(true);
@@ -273,10 +260,7 @@ export class HomeComponent implements OnInit {
 
     this.gameService
       .getCurrentGame()
-      .pipe(
-        timeout(REQUEST_TIMEOUT_MS),
-        catchError(() => of('error' as const)),
-      )
+      .pipe(withRequestTimeout())
       .subscribe((result) => {
         this.isLoadingCurrent.set(false);
 
@@ -311,10 +295,7 @@ export class HomeComponent implements OnInit {
 
     this.gameService
       .getLeaderboard(this.leaderboardMode(), this.leaderboardSort(), 0, HOME_PREVIEW_SIZE)
-      .pipe(
-        timeout(REQUEST_TIMEOUT_MS),
-        catchError(() => of('error' as const)),
-      )
+      .pipe(withRequestTimeout())
       .subscribe((result) => {
         this.isLoadingLeaderboard.set(false);
 
@@ -340,10 +321,7 @@ export class HomeComponent implements OnInit {
 
     this.gameService
       .getCompletedGames(this.completedMode(), 0, HOME_PREVIEW_SIZE)
-      .pipe(
-        timeout(REQUEST_TIMEOUT_MS),
-        catchError(() => of('error' as const)),
-      )
+      .pipe(withRequestTimeout())
       .subscribe((result) => {
         this.isLoadingCompleted.set(false);
 

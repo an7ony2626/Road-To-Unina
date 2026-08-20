@@ -1,10 +1,13 @@
-// Mirrors backend DTOs 1:1 (it.unina.demo.dto.response / entity.GameStatus).
-
 export type GameStatus = 'IN_PROGRESS' | 'COMPLETED' | 'ABANDONED';
 
-// Matches GameFilterMode.java. ALL = no filter, RANDOM = both pages
-// left to chance, CUSTOM = at least one page picked by the player.
 export type GameFilterMode = 'ALL' | 'RANDOM' | 'CUSTOM' | 'UNINA';
+
+export const GAME_FILTER_OPTIONS: { mode: GameFilterMode; label: string }[] = [
+  { mode: 'ALL', label: 'Tutte' },
+  { mode: 'RANDOM', label: 'Casuali' },
+  { mode: 'CUSTOM', label: 'Personalizzate' },
+  { mode: 'UNINA', label: 'Road to Unina' },
+];
 
 export interface GameStep {
   stepNumber: number;

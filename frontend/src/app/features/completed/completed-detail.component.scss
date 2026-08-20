@@ -68,12 +68,3 @@
   color: var(--route-red);
 }
 
-.wiki-link {
-  color: inherit;
-  text-decoration: none;
-
-  &:hover {
-    color: var(--wiki-blue);
-    text-decoration: underline;
-  }
-}
