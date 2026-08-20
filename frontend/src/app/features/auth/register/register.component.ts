@@ -3,10 +3,11 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { PasswordFieldComponent } from '../../../shared/password-field/password-field.component';
 
 @Component({
   selector: 'app-register',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, PasswordFieldComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: '../login/login.component.scss',
   template: `
@@ -38,39 +39,11 @@ import { AuthService } from '../../../core/services/auth.service';
             }
           </label>
 
-          <label class="field">
-            <span>Password</span>
-            <div class="password-wrapper">
-              <input
-                [type]="isPasswordVisible() ? 'text' : 'password'"
-                formControlName="rawPassword"
-                autocomplete="new-password"
-              />
-              <button
-                type="button"
-                class="eye-toggle"
-                (click)="isPasswordVisible.set(!isPasswordVisible())"
-                [attr.aria-label]="isPasswordVisible() ? 'Nascondi password' : 'Mostra password'"
-              >
-                @if (isPasswordVisible()) {
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8-10-8-10-8Z" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                } @else {
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-6 0-10-8-10-8a20.3 20.3 0 0 1 5.06-6.06" />
-                    <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c6 0 10 8 10 8a20.3 20.3 0 0 1-3.22 4.44" />
-                    <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
-                    <line x1="2" y1="2" x2="22" y2="22" />
-                  </svg>
-                }
-              </button>
-            </div>
-            @if (form.controls.rawPassword.touched && form.controls.rawPassword.invalid) {
-              <small class="hint">Almeno 8 caratteri.</small>
-            }
-          </label>
+          <app-password-field
+            [control]="form.controls.rawPassword"
+            autocomplete="new-password"
+            hint="Almeno 8 caratteri."
+          />
 
           @if (errorMessage()) {
             <p class="error">{{ errorMessage() }}</p>
@@ -101,7 +74,6 @@ export class RegisterComponent {
 
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
-  readonly isPasswordVisible = signal(false);
 
   submit(): void {
     if (this.form.invalid || this.isSubmitting()) return;

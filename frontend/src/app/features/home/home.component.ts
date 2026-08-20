@@ -7,6 +7,7 @@ import { GameService } from '../../core/services/game.service';
 import {
   CompletedGameSummary,
   DuplicateGameError,
+  GAME_FILTER_OPTIONS,
   GameFilterMode,
   GameState,
   LeaderboardEntry,
@@ -17,21 +18,9 @@ import { PageSearchComponent } from '../../shared/page-search/page-search.compon
 import { AnimatedBackgroundComponent } from '../../shared/animated-background/animated-background.component';
 import { withColdStartRetry } from '../../shared/http/cold-start-retry';
 
-
+// Both the leaderboard and completed-games panels on the home page show
+// a short preview; the full lists live on their own "vedi tutte" pages.
 const HOME_PREVIEW_SIZE = 5;
-const RECENT_COMPLETED_SIZE = 5;
-
-const FILTERS: { mode: GameFilterMode; label: string }[] = [
-  { mode: 'ALL', label: 'Tutte' },
-  { mode: 'RANDOM', label: 'Casuali' },
-  { mode: 'CUSTOM', label: 'Personalizzate' },
-  { mode: 'UNINA', label: 'Road to Unina' },
-];
-
-const SORT_OPTIONS: { sort: LeaderboardSortMode; label: string }[] = [
-  { sort: 'BEST_MOVES', label: 'Per mosse' },
-  { sort: 'GAMES_PLAYED', label: 'Per partite' },
-];
 
 @Component({
   selector: 'app-home',
@@ -222,8 +211,7 @@ export class HomeComponent implements OnInit {
   private readonly gameService = inject(GameService);
   private readonly router = inject(Router);
 
-  protected readonly filters = FILTERS;
-  protected readonly sortOptions = SORT_OPTIONS;
+  protected readonly filters = GAME_FILTER_OPTIONS;
 
   readonly isLoadingCurrent = signal(true);
   readonly isLoadingLeaderboard = signal(true);
@@ -337,7 +325,7 @@ export class HomeComponent implements OnInit {
     this.isWakingCompleted.set(false);
 
     withColdStartRetry(
-      this.gameService.getCompletedGames(this.completedMode(), 0, RECENT_COMPLETED_SIZE),
+      this.gameService.getCompletedGames(this.completedMode(), 0, HOME_PREVIEW_SIZE),
       () => this.isWakingCompleted.set(true),
     )
       .pipe(catchError(() => of('error' as const)))

@@ -4,14 +4,13 @@ import { catchError, of } from 'rxjs';
 import { GameService } from '../../core/services/game.service';
 import { CompletedGameDetail } from '../../core/models/game.model';
 import { GamePathComponent } from '../../shared/game-path/game-path.component';
-import { DurationPipe } from '../../shared/duration/duration.pipe';
-import { movesLabel } from '../../shared/duration/duration.pipe';
-import { wikiUrl } from '../../shared/wiki-link/wiki-link';
+import { DurationPipe, movesLabel } from '../../shared/duration/duration.pipe';
+import { WikiPageLinkComponent } from '../../shared/wiki-page-link/wiki-page-link.component';
 import { withColdStartRetry } from '../../shared/http/cold-start-retry';
 
 @Component({
   selector: 'app-completed-detail',
-  imports: [RouterLink, GamePathComponent, DurationPipe],
+  imports: [RouterLink, GamePathComponent, DurationPipe, WikiPageLinkComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: 'completed-detail.component.scss',
   template: `
@@ -29,21 +28,9 @@ import { withColdStartRetry } from '../../shared/http/cold-start-retry';
           <section class="summary-card">
             <p class="username">{{ g.username }}</p>
             <p class="route-labels">
-              <a
-                class="wiki-link"
-                [href]="wikiUrl(g.startPageTitle)"
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Apri su Wikipedia"
-              ><strong>{{ g.startPageTitle }}</strong></a>
+              <app-wiki-page-link [title]="g.startPageTitle" [bold]="true" />
               →
-              <a
-                class="wiki-link"
-                [href]="wikiUrl(g.targetPageTitle)"
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Apri su Wikipedia"
-              ><strong>{{ g.targetPageTitle }}</strong></a>
+              <app-wiki-page-link [title]="g.targetPageTitle" [bold]="true" />
             </p>
             <p class="muted">
               {{ movesLabel(g.moves) }} · {{ g.totalTimeSeconds | duration }}
@@ -67,7 +54,6 @@ export class CompletedDetailComponent implements OnInit {
   readonly game = signal<CompletedGameDetail | null>(null);
 
   protected readonly movesLabel = movesLabel;
-  protected readonly wikiUrl = wikiUrl;
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));

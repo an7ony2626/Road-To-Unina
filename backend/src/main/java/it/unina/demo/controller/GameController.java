@@ -26,8 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.net.URI;
 
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-
-
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 
 @RestController
 @RequestMapping("/api/games")
@@ -40,19 +39,12 @@ public class GameController {
 
     private final GameService gameService;
 
-    // Static segment "current" is matched before the {id} template by
-    // Spring's path matching, no ambiguity with GET /{id}.
     @GetMapping("/current")
     public GameStateResponse getCurrentGame() {
         return gameService.getCurrentGame();
     }
 
-    // Public per SecurityConfig (GET /api/games/leaderboard is
-    // permitAll), same reasoning as /completed below. Still honors a
-    // Bearer token when present — JwtAuthenticationFilter runs before
-    // the permitAll check — so a logged-in caller gets their own rank
-    // back in the response even though auth isn't required.
-    @io.swagger.v3.oas.annotations.security.SecurityRequirements
+    @SecurityRequirements
     @GetMapping("/leaderboard")
     public LeaderboardPageResponse getLeaderboard(
             @RequestParam(defaultValue = "ALL") GameFilterMode mode,
@@ -68,8 +60,7 @@ public class GameController {
         return gameService.getGameState(id);
     }
 
-    // A move is a new sub-resource under the game: POST on the
-    // /moves collection, 201 with a Location pointing at it.
+
     @PostMapping("/{id}/moves")
     public ResponseEntity<GameStateResponse> followLink(
             @PathVariable Long id,
@@ -95,7 +86,7 @@ public class GameController {
         return gameService.getGameState(id);
     }
 
-    @io.swagger.v3.oas.annotations.security.SecurityRequirements
+    @SecurityRequirements
     @GetMapping("/completed")
     public CompletedGamesPageResponse getCompletedGames(
             @RequestParam(defaultValue = "ALL") GameFilterMode mode,
@@ -105,7 +96,7 @@ public class GameController {
         return gameService.getCompletedGames(mode.toIsRandomChallenge(), mode.toRequiredTargetTitle(), page, size);
     }
 
-    @io.swagger.v3.oas.annotations.security.SecurityRequirements
+    @SecurityRequirements
     @GetMapping("/completed/{id}")
     public CompletedGameDetailResponse getCompletedGame(@PathVariable Long id) {
         return gameService.getCompletedGameDetail(id);

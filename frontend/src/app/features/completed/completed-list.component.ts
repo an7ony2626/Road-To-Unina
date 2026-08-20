@@ -2,23 +2,16 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@ang
 import { Router, RouterLink } from '@angular/router';
 import { catchError, of } from 'rxjs';
 import { GameService } from '../../core/services/game.service';
-import { CompletedGameSummary, GameFilterMode } from '../../core/models/game.model';
+import { CompletedGameSummary, GAME_FILTER_OPTIONS, GameFilterMode } from '../../core/models/game.model';
 import { DurationPipe } from '../../shared/duration/duration.pipe';
-import { wikiUrl } from '../../shared/wiki-link/wiki-link';
+import { WikiPageLinkComponent } from '../../shared/wiki-page-link/wiki-page-link.component';
 import { withColdStartRetry } from '../../shared/http/cold-start-retry';
 
 const PAGE_SIZE = 10;
 
-const FILTERS: { mode: GameFilterMode; label: string }[] = [
-  { mode: 'ALL', label: 'Tutte' },
-  { mode: 'RANDOM', label: 'Casuali' },
-  { mode: 'CUSTOM', label: 'Personalizzate' },
-  { mode: 'UNINA', label: 'Road to Unina' },
-];
-
 @Component({
   selector: 'app-completed-list',
-  imports: [RouterLink, DurationPipe],
+  imports: [RouterLink, DurationPipe, WikiPageLinkComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './completed-list.component.scss',
   template: `
@@ -61,23 +54,9 @@ const FILTERS: { mode: GameFilterMode; label: string }[] = [
                 >
                   <span class="name">{{ game.username }}</span>
                   <span class="route-labels">
-                    <a
-                      class="wiki-link"
-                      [href]="wikiUrl(game.startPageTitle)"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Apri su Wikipedia"
-                      (click)="$event.stopPropagation()"
-                    >{{ game.startPageTitle }}</a>
+                    <app-wiki-page-link [title]="game.startPageTitle" [stopPropagation]="true" />
                     →
-                    <a
-                      class="wiki-link"
-                      [href]="wikiUrl(game.targetPageTitle)"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      title="Apri su Wikipedia"
-                      (click)="$event.stopPropagation()"
-                    >{{ game.targetPageTitle }}</a>
+                    <app-wiki-page-link [title]="game.targetPageTitle" [stopPropagation]="true" />
                   </span>
                   <span class="stat mono">{{ game.moves }} mosse</span>
                   <span class="stat mono">{{ game.totalTimeSeconds | duration }}</span>
@@ -100,8 +79,7 @@ export class CompletedListComponent implements OnInit {
   private readonly gameService = inject(GameService);
   private readonly router = inject(Router);
 
-  protected readonly filters = FILTERS;
-  protected readonly wikiUrl = wikiUrl;
+  protected readonly filters = GAME_FILTER_OPTIONS;
 
   readonly isLoading = signal(true);
   readonly isLoadingMore = signal(false);
