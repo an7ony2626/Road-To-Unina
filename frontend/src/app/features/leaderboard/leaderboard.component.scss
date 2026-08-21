@@ -204,3 +204,13 @@
 .error {
   color: var(--route-red);
 }
+
+.trophy {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  margin-left: auto; /* Mantiene "X mosse (best)" agganciato sul bordo destro */
+}
