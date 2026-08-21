@@ -12,6 +12,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/game/game.component').then((m) => m.GameComponent),
   },
   {
+    path: 'leaderboard',
+    loadComponent: () => import('./features/leaderboard/leaderboard.component').then((m) => m.LeaderboardComponent),
+  },
+  {
     path: 'completed',
     loadComponent: () => import('./features/completed/completed-list.component').then((m) => m.CompletedListComponent),
   },
