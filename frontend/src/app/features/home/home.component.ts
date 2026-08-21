@@ -155,14 +155,21 @@ const HOME_PREVIEW_SIZE = 5;
             <p class="muted">Nessuna partita completata ancora.</p>
           } @else {
             <ol class="leaderboard">
-              @for (entry of leaderboard(); track entry.userId) {
-                <li>
-                  <span class="name">{{ entry.username }}</span>
-                  <span class="stat">{{ entry.gamesCompleted }} partite</span>
-                  <span class="stat mono">{{ entry.bestMoves ?? '—' }} mosse (best)</span>
-                </li>
-              }
-            </ol>
+                @for (entry of leaderboard(); track entry.userId; let i = $index) {
+                  <li>
+                    <span class="name">{{ entry.username }}</span>
+                    <span class="stat">{{ entry.gamesCompleted }} partite</span>
+
+                    @switch (i) {
+                      @case (0) { <span class="trophy" title="1° Posto">🥇</span> }
+                      @case (1) { <span class="trophy" title="2° Posto">🥈</span> }
+                      @case (2) { <span class="trophy" title="3° Posto">🥉</span> }
+                    }
+
+                    <span class="stat mono">{{ entry.bestMoves ?? '—' }} mosse (best)</span>
+                  </li>
+                }
+              </ol>
           }
         </section>
 
