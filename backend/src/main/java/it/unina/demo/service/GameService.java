@@ -105,15 +105,8 @@ public class GameService {
         return buildGameState(game, startPage, List.of(firstStep));
     }
 
-    // Checks whether the player already has a COMPLETED game with this
-    // exact start->target pair (case-insensitive, since Wikipedia
-    // titles are already canonicalized upstream). First attempt: fail
-    // fast with a 409 so the frontend can warn the player before doing
-    // anything destructive. Once they confirm, the earlier attempt is
-    // deleted (cascading to its steps at the DB level) to make room for
-    // the new one — replays are allowed, but only one record per pair.
     private void handleDuplicateCompletedGame(User user, String startTitle, String targetTitle, boolean confirmReplace) {
-        gameRepo.findByUserIdAndStatusAndStartPageTitleIgnoreCaseAndTargetPageTitleIgnoreCase(
+        gameRepo.findFirstByUserIdAndStatusAndStartPageTitleIgnoreCaseAndTargetPageTitleIgnoreCaseOrderByStartedAtDesc(
                 user.getId(), GameStatus.COMPLETED, startTitle, targetTitle
         ).ifPresent(existingGame -> {
             if (!confirmReplace)
