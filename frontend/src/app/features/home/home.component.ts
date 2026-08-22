@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../core/services/auth.service';
@@ -15,6 +15,7 @@ import {
 import { WikiSearchResult } from '../../core/models/wiki-search.model';
 import { PageSearchComponent } from '../../shared/page-search/page-search.component';
 import { AnimatedBackgroundComponent } from '../../shared/animated-background/animated-background.component';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { withRequestTimeout } from '../../shared/rxjs/with-request-timeout';
 
 // Both the leaderboard and completed-games panels on the home page show
@@ -23,7 +24,7 @@ const HOME_PREVIEW_SIZE = 5;
 
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, PageSearchComponent, AnimatedBackgroundComponent],
+  imports: [RouterLink, PageSearchComponent, AnimatedBackgroundComponent, ConfirmDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: 'home.component.scss',
   template: `
@@ -213,6 +214,16 @@ const HOME_PREVIEW_SIZE = 5;
           }
         </section>
       </main>
+
+      <app-confirm-dialog
+        [open]="pendingDuplicateGame() !== null"
+        title="Partita già completata"
+        [message]="duplicateGameMessage()"
+        confirmLabel="Sostituisci"
+        cancelLabel="Annulla"
+        (confirmed)="confirmReplaceExisting()"
+        (cancelled)="cancelReplaceExisting()"
+      />
     </div>
   `,
 })
@@ -233,6 +244,14 @@ export class HomeComponent implements OnInit {
 
   readonly isStarting = signal(false);
   readonly startErrorMessage = signal<string | null>(null);
+  // Holds the pending duplicate-game warning while the confirm dialog
+  // is open; null means the dialog is closed. Replaces window.confirm().
+  readonly pendingDuplicateGame = signal<DuplicateGameError | null>(null);
+  readonly duplicateGameMessage = computed(() => {
+    const pending = this.pendingDuplicateGame();
+    if (!pending) return '';
+    return `${pending.message} (${pending.existingMoves} mosse). Continuando, quella partita verrà eliminata.`;
+  });
   readonly currentGame = signal<GameState | null>(null);
   readonly leaderboard = signal<LeaderboardEntry[]>([]);
   readonly leaderboardMode = signal<GameFilterMode>('ALL');
@@ -370,15 +389,7 @@ export class HomeComponent implements OnInit {
           this.isStarting.set(false);
 
           if (err.status === 409 && this.isDuplicateGameError(err.error)) {
-            // Distinct from a plain-string 409 (e.g. "game already in
-            // progress"): this shape means the player already completed
-            // this exact pair. Ask before deleting that earlier record.
-            const replace = confirm(
-              `${err.error.message} (${err.error.existingMoves} mosse). Continuando, quella partita verrà eliminata. Vuoi procedere?`,
-            );
-            if (replace) {
-              this.startGame(true);
-            }
+            this.pendingDuplicateGame.set(err.error);
             return;
           }
 
@@ -387,6 +398,15 @@ export class HomeComponent implements OnInit {
           );
         },
       });
+  }
+
+  confirmReplaceExisting(): void {
+    this.pendingDuplicateGame.set(null);
+    this.startGame(true);
+  }
+
+  cancelReplaceExisting(): void {
+    this.pendingDuplicateGame.set(null);
   }
 
   private isDuplicateGameError(error: unknown): error is DuplicateGameError {
