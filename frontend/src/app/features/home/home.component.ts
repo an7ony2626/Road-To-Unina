@@ -159,7 +159,7 @@ const HOME_PREVIEW_SIZE = 5;
                 @for (entry of leaderboard(); track entry.userId; let i = $index) {
                   <li>
                     <span class="name">{{ entry.username }}</span>
-                    <span class="stat">{{ entry.gamesCompleted }} partite</span>
+                    <span class="stat">{{ entry.gamesCompleted }} {{ entry.gamesCompleted === 1 ? 'partita' : 'partite' }}</span>
 
                     @switch (i) {
                       @case (0) { <span class="trophy" title="1° Posto">🥇</span> }
@@ -167,7 +167,7 @@ const HOME_PREVIEW_SIZE = 5;
                       @case (2) { <span class="trophy" title="3° Posto">🥉</span> }
                     }
 
-                    <span class="stat mono">{{ entry.bestMoves ?? '—' }} mosse (best)</span>
+                    <span class="stat mono">{{ entry.bestMoves ?? '—' }} {{ entry.bestMoves === 1 ? 'mossa' : 'mosse' }} (best)</span>
                   </li>
                 }
               </ol>
