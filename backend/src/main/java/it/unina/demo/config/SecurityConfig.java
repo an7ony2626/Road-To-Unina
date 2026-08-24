@@ -20,7 +20,8 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
-public class SecurityConfig {
+public class SecurityConfig
+{
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
@@ -29,37 +30,78 @@ public class SecurityConfig {
     private String allowedOrigins;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain
+    (HttpSecurity http) throws Exception
+    {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/games/leaderboard").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/games/completed").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/games/completed/{id}").permitAll()
-                        .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .cors
+                (cors -> cors.configurationSource
+                (corsConfigurationSource
+                ()))
+                .csrf
+                (csrf -> csrf.disable
+                ())
+                .authorizeHttpRequests
+                (auth -> auth
+                        .requestMatchers
+                        ("/api/auth/**").permitAll
+                        ()
+                        .requestMatchers
+                        ("/api/v1/ping").permitAll
+                        ()
+                        .requestMatchers
+                        (HttpMethod.GET, "/api/games/leaderboard").permitAll
+                        ()
+                        .requestMatchers
+                        (HttpMethod.GET, "/api/games/completed").permitAll
+                        ()
+                        .requestMatchers
+                        (HttpMethod.GET, "/api/games/completed/{id}").permitAll
+                        ()
+                        .requestMatchers
+                        ("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll
+                        ()
                         
-                        .anyRequest().authenticated()
+                        .anyRequest
+                        ().authenticated
+                        ()
                 )
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .sessionManagement
+                (session -> session
+                        .sessionCreationPolicy
+                        (SessionCreationPolicy.STATELESS))
+                .authenticationProvider
+                (authenticationProvider)
+                .addFilterBefore
+                (jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
+        return http.build
+        ();
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(allowedOrigins.split(",")));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
-        configuration.setAllowCredentials(true);
+    public CorsConfigurationSource corsConfigurationSource
+    ()
+    {
+        CorsConfiguration configuration = new CorsConfiguration
+        ();
+        configuration.setAllowedOrigins
+        (List.of
+        (allowedOrigins.split
+        (",")));
+        configuration.setAllowedMethods
+        (List.of
+        ("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders
+        (List.of
+        ("*"));
+        configuration.setAllowCredentials
+        (true);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource
+        ();
+        source.registerCorsConfiguration
+        ("/**", configuration);
         return source;
     }
 }
