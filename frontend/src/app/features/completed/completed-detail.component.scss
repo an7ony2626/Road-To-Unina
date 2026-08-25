@@ -16,7 +16,7 @@
   cursor: pointer;
 
   img {
-    height: 26px;
+    height: var(--logo-size);
     width: auto;
     display: block;
   }

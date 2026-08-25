@@ -12,14 +12,7 @@ import { PasswordFieldComponent } from '../../../shared/password-field/password-
   template: `
     <div class="auth-screen">
       <div class="auth-card">
-        <svg class="route" viewBox="0 0 240 40" aria-hidden="true">
-          <line x1="14" y1="20" x2="226" y2="20" stroke="var(--line)" stroke-width="2" stroke-dasharray="3 6" />
-          <circle cx="14" cy="20" r="6" fill="var(--wiki-blue)" />
-          <circle cx="226" cy="20" r="6" fill="var(--route-red)" />
-        </svg>
-
         <img class="brand-logo" src="/logo-wordmark.png" alt="WikiRace">
-        <p class="tagline">Trova il percorso più breve tra due pagine di Wikipedia.</p>
 
         <form [formGroup]="form" (ngSubmit)="submit()">
           <label class="field">

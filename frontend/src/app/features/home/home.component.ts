@@ -49,7 +49,7 @@ const HOME_PREVIEW_SIZE = 5;
           @if (!auth.isAuthenticated()) {
             <h1>Benvenuto su WikiRace</h1>
             <p class="muted">
-              Accedi per avviare una sfida. Puoi comunque esplorare classifica e partite concluse qui sotto.
+              Parti da una pagina Wikipedia e raggiungi quella di arrivo cliccando solo sui link interni: vince chi ci arriva nel minor numero di mosse. Accedi per iniziare a giocare.
             </p>
           } @else {
             <svg class="route" viewBox="0 0 320 40" aria-hidden="true">
@@ -81,7 +81,7 @@ const HOME_PREVIEW_SIZE = 5;
             } @else {
               <h1>Pronto per una sfida?</h1>
               <p class="muted">
-                Lascia scegliere il caso, oppure imposta tu le pagine di partenza e arrivo.
+                Ti diamo una pagina di partenza e una di arrivo: naviga tra i link di Wikipedia e collegale nel minor numero di click possibile.
               </p>
 
               <div class="page-picker">
