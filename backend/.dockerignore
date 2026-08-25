@@ -1,3 +1,10 @@
 target/
+<<<<<<< HEAD
 .git/
 *.md
+=======
+.idea/
+.vscode/
+*.iml
+HELP.md
+>>>>>>> main

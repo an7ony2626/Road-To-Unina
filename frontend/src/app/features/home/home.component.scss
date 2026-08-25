@@ -14,9 +14,14 @@
 }
 
 .brand {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+
+  img {
+    height: var(--logo-size);
+    width: auto;
+    display: block;
+  }
 }
 
 .topbar-actions {
@@ -62,9 +67,9 @@
 .route {
   display: block;
   width: 100%;
-  max-width: 480px;
+  max-width: 560px;
   height: 40px;
-  margin: 0 auto 24px;
+  margin: 0 auto 10px;
 
   circle {
     transition: cx 0.4s ease;
@@ -220,7 +225,7 @@ h1 {
   display: flex;
   align-items: flex-start;
   gap: 16px;
-  margin: 20px 0;
+  margin: 40px 0 20px;
   text-align: left;
 
   app-page-search {

@@ -17,7 +17,7 @@ const PAGE_SIZE = 10;
   template: `
     <div class="page">
       <header class="topbar">
-        <a routerLink="/" class="brand-link">WikiRace</a>
+        <a routerLink="/" class="brand-link"><img src="/logo-wordmark.png" alt="WikiRace"></a>
         <span class="brand">Partite concluse</span>
       </header>
 

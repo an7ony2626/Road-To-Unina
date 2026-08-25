@@ -18,15 +18,20 @@
 }
 
 .brand-link {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
   color: inherit;
   text-decoration: none;
   cursor: pointer;
 
+  img {
+    height: var(--logo-size);
+    width: auto;
+    display: block;
+  }
+
   &:hover {
-    color: var(--wiki-blue);
+    opacity: 0.8;
   }
 }
 

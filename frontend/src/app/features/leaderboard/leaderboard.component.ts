@@ -15,7 +15,7 @@ const PAGE_SIZE = 10;
   template: `
     <div class="page">
       <header class="topbar">
-        <a routerLink="/" class="brand-link">WikiRace</a>
+        <a routerLink="/" class="brand-link"><img src="/logo-wordmark.png" alt="WikiRace"></a>
         <span class="brand">Classifica</span>
       </header>
 
@@ -78,7 +78,7 @@ const PAGE_SIZE = 10;
                     @case (2) { <span class="trophy" title="3° Posto">🥉</span> }
                   }
 
-                  <span class="stat mono">{{ entry.bestMoves ?? '—' }} {{ entry.bestMoves === 1 ? 'mossa' : 'mosse' }} (best)</span>
+                  <span class="stat mono">{{ entry.bestMoves ?? '—' }} {{ entry.gamesCompleted === 1 ? 'mossa' : 'mosse' }} (best)</span>
                 </li>
               }
             </ol>
