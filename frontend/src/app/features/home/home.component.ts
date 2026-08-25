@@ -32,7 +32,7 @@ const HOME_PREVIEW_SIZE = 5;
       <app-animated-background />
 
       <header class="topbar">
-        <span class="brand">WikiRace</span>
+        <span class="brand"><img src="/logo-wordmark.png" alt="WikiRace"></span>
         <div class="topbar-actions">
           @if (auth.isAuthenticated()) {
             <span class="username">{{ auth.username() }}</span>

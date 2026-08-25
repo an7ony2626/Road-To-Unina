@@ -18,7 +18,7 @@ import { PasswordFieldComponent } from '../../../shared/password-field/password-
           <circle cx="226" cy="20" r="6" fill="var(--route-red)" />
         </svg>
 
-        <h1>WikiRace</h1>
+        <img class="brand-logo" src="/logo-wordmark.png" alt="WikiRace">
         <p class="tagline">Trova il percorso più breve tra due pagine di Wikipedia.</p>
 
         <form [formGroup]="form" (ngSubmit)="submit()">

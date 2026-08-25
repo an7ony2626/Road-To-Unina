@@ -14,9 +14,14 @@
 }
 
 .brand {
-  font-family: var(--font-display);
-  font-weight: 600;
-  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+
+  img {
+    height: 26px;
+    width: auto;
+    display: block;
+  }
 }
 
 .topbar-actions {

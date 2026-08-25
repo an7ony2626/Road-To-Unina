@@ -15,7 +15,7 @@ import { withRequestTimeout } from '../../shared/rxjs/with-request-timeout';
   template: `
     <div class="page">
       <header class="topbar">
-        <a routerLink="/" class="brand">WikiRace</a>
+        <a routerLink="/" class="brand"><img src="/logo-wordmark.png" alt="WikiRace"></a>
       </header>
 
       <main class="content">
